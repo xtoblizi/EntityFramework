@@ -1037,16 +1037,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
             {
                 var selectExpression = _queryModelVisitor.TryGetQuery(expression.ReferencedQuerySource);
 
-                if (selectExpression != null)
-                {
-                    var subquery = selectExpression.Tables.FirstOrDefault() as SelectExpression;
-
-                    var innerProjectionExpression = subquery?.Projection.FirstOrDefault();
-                    if (innerProjectionExpression != null)
-                    {
-                        return innerProjectionExpression.LiftExpressionFromSubquery(subquery);
-                    }
-                }
+                return selectExpression?.Projection.FirstOrDefault();
             }
 
             return null;

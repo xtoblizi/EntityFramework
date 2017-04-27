@@ -640,11 +640,6 @@ namespace Microsoft.EntityFrameworkCore.Query
                         || !subSelectExpression.IsCorrelated()
                         || !(querySource is AdditionalFromClause)))
                 {
-                    if (!subSelectExpression.IsIdentityQuery())
-                    {
-                        subSelectExpression.PushDownSubquery().QuerySource = querySource;
-                    }
-
                     AddQuery(querySource, subSelectExpression);
 
                     var newExpression
@@ -776,6 +771,14 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                 if (sqlPredicateExpression != null)
                 {
+                    if (selectExpression.Limit != null
+                        || selectExpression.Offset != null)
+                    {
+                        selectExpression.PushDownSubquery();
+                        selectExpression.ExplodeStarProjection();
+                        sqlPredicateExpression = sqlTranslatingExpressionVisitor.Visit(whereClause.Predicate);
+                    }
+
                     sqlPredicateExpression =
                         _conditionalRemovingExpressionVisitorFactory
                             .Create()
@@ -822,6 +825,13 @@ namespace Microsoft.EntityFrameworkCore.Query
 
             if (!requiresClientOrderBy)
             {
+                if (selectExpression.Limit != null
+                    || selectExpression.Offset != null)
+                {
+                    selectExpression.PushDownSubquery();
+                    selectExpression.ExplodeStarProjection();
+                }
+
                 var sqlTranslatingExpressionVisitor
                     = _sqlTranslatingExpressionVisitorFactory.Create(
                         queryModelVisitor: this,
@@ -1140,7 +1150,7 @@ namespace Microsoft.EntityFrameworkCore.Query
 
             var innerSelectExpression = TryGetQuery(fromClause);
 
-            if (innerSelectExpression?.Tables.Count != 1)
+            if (innerSelectExpression == null)
             {
                 return false;
             }
@@ -1177,12 +1187,8 @@ namespace Microsoft.EntityFrameworkCore.Query
 
             var joinExpression
                 = correlated
-                    ? outerSelectExpression.AddCrossJoinLateral(
-                        innerSelectExpression.Tables.First(),
-                        innerSelectExpression.Projection)
-                    : outerSelectExpression.AddCrossJoin(
-                        innerSelectExpression.Tables.First(),
-                        innerSelectExpression.Projection);
+                    ? outerSelectExpression.AddCrossJoinLateral(innerSelectExpression)
+                    : outerSelectExpression.AddCrossJoin(innerSelectExpression);
 
             joinExpression.QuerySource = fromClause;
 
@@ -1269,22 +1275,27 @@ namespace Microsoft.EntityFrameworkCore.Query
 
             outerSelectExpression.RemoveRangeFromProjection(previousProjectionCount);
 
-            var projection
-                = QueryCompilationContext.QuerySourceRequiresMaterialization(joinClause)
-                    ? innerSelectExpression.Projection
-                    : Enumerable.Empty<Expression>();
+            var outerShaper = ExtractShaper(outerShapedQuery, 0);
+            var innerShaper = ExtractShaper(innerShapedQuery, previousProjectionCount);
+
+            if (innerShaper.Type == typeof(AnonymousObject))
+            {
+                innerSelectExpression.PushDownSubquery();
+                innerSelectExpression.ExplodeStarProjection();
+            }
 
             var joinExpression
                 = outerSelectExpression.AddInnerJoin(
-                    innerSelectExpression.Tables.Single(),
-                    projection,
-                    innerSelectExpression.Predicate);
+                    innerSelectExpression,
+                    QueryCompilationContext.QuerySourceRequiresMaterialization(joinClause));
 
-            joinExpression.Predicate = predicate;
             joinExpression.QuerySource = joinClause;
 
-            var outerShaper = ExtractShaper(outerShapedQuery, 0);
-            var innerShaper = ExtractShaper(innerShapedQuery, previousProjectionCount);
+            predicate
+                = sqlTranslatingExpressionVisitor.Visit(
+                    Expression.Equal(joinClause.OuterKeySelector, joinClause.InnerKeySelector));
+
+            joinExpression.Predicate = predicate;
 
             if (innerShaper.Type == typeof(AnonymousObject))
             {
@@ -1376,34 +1387,34 @@ namespace Microsoft.EntityFrameworkCore.Query
                 return false;
             }
 
-            if (innerSelectExpression.Predicate != null)
-            {
-                var subSelectExpression = innerSelectExpression.PushDownSubquery();
-                innerSelectExpression.ExplodeStarProjection();
-                subSelectExpression.IsProjectStar = true;
-                subSelectExpression.QuerySource = joinClause;
+            //if (innerSelectExpression.Predicate != null)
+            //{
+            //    var subSelectExpression = innerSelectExpression.PushDownSubquery();
+            //    innerSelectExpression.ExplodeStarProjection();
+            //    subSelectExpression.IsProjectStar = true;
+            //    subSelectExpression.QuerySource = joinClause;
 
-                predicate
-                    = sqlTranslatingExpressionVisitor.Visit(
-                        Expression.Equal(joinClause.OuterKeySelector, joinClause.InnerKeySelector));
-            }
+            //    predicate
+            //        = sqlTranslatingExpressionVisitor.Visit(
+            //            Expression.Equal(joinClause.OuterKeySelector, joinClause.InnerKeySelector));
+            //}
 
             QueriesBySource.Remove(joinClause);
 
             outerSelectExpression.RemoveRangeFromProjection(previousProjectionCount);
 
-            var projections
-                = QueryCompilationContext.QuerySourceRequiresMaterialization(joinClause)
-                    ? innerSelectExpression.Projection
-                    : Enumerable.Empty<Expression>();
-
             var joinExpression
                 = outerSelectExpression.AddLeftOuterJoin(
-                    innerSelectExpression.Tables.Single(),
-                    projections);
+                    innerSelectExpression,
+                    QueryCompilationContext.QuerySourceRequiresMaterialization(joinClause));
+
+            joinExpression.QuerySource = joinClause;
+
+            predicate
+                = sqlTranslatingExpressionVisitor.Visit(
+                    Expression.Equal(joinClause.OuterKeySelector, joinClause.InnerKeySelector));
 
             joinExpression.Predicate = predicate;
-            joinExpression.QuerySource = joinClause;
 
             if (TryFlattenGroupJoinDefaultIfEmpty(
                 groupJoinClause,

@@ -15,7 +15,8 @@ namespace Microsoft.EntityFrameworkCore.SqlServer.FunctionalTests
             NorthwindQuerySqlServerFixture fixture, ITestOutputHelper testOutputHelper)
             : base(fixture)
         {
-            fixture.TestSqlLoggerFactory.Clear();
+            Fixture.TestSqlLoggerFactory.Clear();
+            //Fixture.TestSqlLoggerFactory.SetTestOutputHelper(testOutputHelper);
         }
 
         public override void Join_with_nav_projected_in_subquery_when_client_eval()
@@ -1124,7 +1125,7 @@ ORDER BY [od].[Quantity]");
                 @"SELECT [od].[OrderID], [od].[ProductID], [od].[Discount], [od].[Quantity], [od].[UnitPrice], [od.Order].[CustomerID] AS [customer]
 FROM [Order Details] AS [od]
 INNER JOIN [Orders] AS [od.Order] ON [od].[OrderID] = [od.Order].[OrderID]
-ORDER BY [od.Order].[CustomerID]");
+ORDER BY [customer]");
         }
 
         public override void Project_first_or_default_on_empty_collection_of_value_types_returns_proper_default()
@@ -1214,7 +1215,7 @@ ORDER BY [o].[OrderID]");
                 @"SELECT [c].[CustomerID], [c].[Address], [c].[City], [c].[CompanyName], [c].[ContactName], [c].[ContactTitle], [c].[Country], [c].[Fax], [c].[Phone], [c].[PostalCode], [c].[Region]
 FROM [Customers] AS [c]
 LEFT JOIN (
-    SELECT [c2].*
+    SELECT [c2].[CustomerID]
     FROM [Order Details] AS [od]
     INNER JOIN [Orders] AS [o] ON [od].[OrderID] = 10260
     INNER JOIN [Customers] AS [c2] ON [o].[CustomerID] = [c2].[CustomerID]
@@ -1229,7 +1230,7 @@ LEFT JOIN (
                 @"SELECT [c].[CustomerID]
 FROM [Customers] AS [c]
 LEFT JOIN (
-    SELECT [c2].*
+    SELECT [c2].[CustomerID]
     FROM [Order Details] AS [od]
     INNER JOIN [Orders] AS [o] ON [od].[OrderID] = 10260
     INNER JOIN [Customers] AS [c2] ON [o].[CustomerID] = [c2].[CustomerID]

@@ -103,6 +103,16 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors
 
             if (IncludeCompiler.IsIncludeMethod(methodCallExpression))
             {
+                var secondArgument = methodCallExpression.Arguments[1];
+                var selectExpression = QueryModelVisitor.TryGetQuery(_querySource);
+
+                if (QueryModelVisitor.ParentQueryModelVisitor != null
+                    && secondArgument is QuerySourceReferenceExpression qsre
+                    && selectExpression.HandlesQuerySource(qsre.ReferencedQuerySource))
+                {
+                    selectExpression.ProjectStarTable = selectExpression.GetTableForQuerySource(qsre.ReferencedQuerySource);
+                }
+
                 return methodCallExpression;
             }
 

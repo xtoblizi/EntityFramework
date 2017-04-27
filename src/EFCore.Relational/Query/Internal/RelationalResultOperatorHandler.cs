@@ -279,7 +279,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                         outerSelectExpression.AddTable(collectionSelectExpression);
 
                         itemSelectExpression.Alias = queryCompilationContext.CreateUniqueTableAlias();
-                        var joinExpression = outerSelectExpression.AddInnerJoin(itemSelectExpression);
+                        var joinExpression = new InnerJoinExpression(itemSelectExpression);
+                        outerSelectExpression.AddTable(joinExpression);
 
                         foreach (var property in entityType.FindPrimaryKey().Properties)
                         {

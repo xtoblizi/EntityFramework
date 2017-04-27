@@ -285,7 +285,6 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
                && Predicate == null
                && Limit == null
                && Offset == null
-               && Projection.Count == 0
                && OrderBy.Count == 0
                && Tables.Count == 1;
 
@@ -477,12 +476,17 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
                 table = joinTable.TableExpression;
             }
 
-            var projectedExpressionToSearch = table is SelectExpression subquerySelectExpression
+            var boundExpression = table is SelectExpression subquerySelectExpression
                 ? (Expression)subquerySelectExpression.BindProperty(property, querySource)
                     .LiftExpressionFromSubquery(table)
                 : new ColumnExpression(_relationalAnnotationProvider.For(property).ColumnName, property, table);
 
-            return projectedExpressionToSearch;
+            if (Alias != null)
+            {
+                AddToProjection(boundExpression);
+            }
+
+            return boundExpression;
         }
 
         /// <summary>
@@ -714,15 +718,14 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
 
             if (table is SelectExpression subquerySelectExpression)
             {
-                var innerProjectedExpression
-                    = subquerySelectExpression.IsProjectStar
-                        ? subquerySelectExpression._starProjection[projectionIndex]
-                        : subquerySelectExpression._projection[projectionIndex];
+                var innerProjectedExpression = subquerySelectExpression.BindSubqueryProjectionIndex(
+                    projectionIndex,
+                    querySource);
 
                 return innerProjectedExpression.LiftExpressionFromSubquery(table);
             }
 
-            return null;
+            return IsProjectStar ? _starProjection[projectionIndex] : _projection[projectionIndex];
         }
 
         /// <summary>
@@ -750,9 +753,11 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         {
             Check.NotNull(memberInfo, nameof(memberInfo));
 
-            return _memberInfoProjectionMapping.ContainsKey(memberInfo)
+            var projectedExpression = _memberInfoProjectionMapping.ContainsKey(memberInfo)
                 ? _memberInfoProjectionMapping[memberInfo]
                 : null;
+
+            return (projectedExpression as AliasExpression)?.Expression ?? projectedExpression;
         }
 
         /// <summary>
@@ -823,6 +828,13 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
                 return existingOrdering;
             }
 
+            var existingProjectedExpression = _projection.Find(p => (p as AliasExpression)?.Expression?.Equals(ordering.Expression) == true);
+
+            if (existingProjectedExpression != null)
+            {
+                ordering.Expression = existingProjectedExpression;
+            }
+
             _orderBy.Add(ordering);
 
             return ordering;
@@ -839,7 +851,11 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
             var oldOrderBy = _orderBy.ToList();
 
             _orderBy.Clear();
-            _orderBy.AddRange(orderings);
+
+            foreach (var ordering in orderings)
+            {
+                AddToOrderBy(ordering);
+            }
 
             foreach (var ordering in oldOrderBy)
             {
@@ -855,19 +871,29 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         /// <summary>
         ///     Adds a SQL CROSS JOIN to this SelectExpression.
         /// </summary>
-        /// <param name="tableExpression"> The target table expression. </param>
-        /// <param name="projection"> A sequence of expressions that should be added to the projection. </param>
-        public virtual JoinExpressionBase AddCrossJoin(
-            [NotNull] TableExpressionBase tableExpression,
-            [NotNull] IEnumerable<Expression> projection)
+        /// <param name="joinedSelectExpression"> The target table expression. </param>
+        public virtual JoinExpressionBase AddCrossJoin([NotNull] SelectExpression joinedSelectExpression)
         {
-            Check.NotNull(tableExpression, nameof(tableExpression));
-            Check.NotNull(projection, nameof(projection));
+            Check.NotNull(joinedSelectExpression, nameof(joinedSelectExpression));
 
-            var crossJoinExpression = new CrossJoinExpression(tableExpression);
+            if (_isDistinct
+                || _limit != null
+                || _offset != null)
+            {
+                PushDownSubquery();
+                ExplodeStarProjection();
+            }
+
+            if (!joinedSelectExpression.IsIdentityQuery())
+            {
+                joinedSelectExpression.PushDownSubquery();
+                joinedSelectExpression.ExplodeStarProjection();
+            }
+
+            var crossJoinExpression = new CrossJoinExpression(joinedSelectExpression.ProjectStarTable);
 
             _tables.Add(crossJoinExpression);
-            _projection.AddRange(projection);
+            _projection.AddRange(joinedSelectExpression.Projection);
 
             return crossJoinExpression;
         }
@@ -875,19 +901,21 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         /// <summary>
         ///     Adds a SQL CROSS JOIN LATERAL to this SelectExpression.
         /// </summary>
-        /// <param name="tableExpression"> The target table expression. </param>
-        /// <param name="projection"> A sequence of expressions that should be added to the projection. </param>
-        public virtual JoinExpressionBase AddCrossJoinLateral(
-            [NotNull] TableExpressionBase tableExpression,
-            [NotNull] IEnumerable<Expression> projection)
+        /// <param name="joinedSelectExpression"> The target table expression. </param>
+        public virtual JoinExpressionBase AddCrossJoinLateral([NotNull] SelectExpression joinedSelectExpression)
         {
-            Check.NotNull(tableExpression, nameof(tableExpression));
-            Check.NotNull(projection, nameof(projection));
+            Check.NotNull(joinedSelectExpression, nameof(joinedSelectExpression));
 
-            var crossJoinLateralExpression = new CrossJoinLateralExpression(tableExpression);
+            if (!joinedSelectExpression.IsIdentityQuery())
+            {
+                joinedSelectExpression.PushDownSubquery();
+                joinedSelectExpression.ExplodeStarProjection();
+            }
+
+            var crossJoinLateralExpression = new CrossJoinLateralExpression(joinedSelectExpression.ProjectStarTable);
 
             _tables.Add(crossJoinLateralExpression);
-            _projection.AddRange(projection);
+            _projection.AddRange(joinedSelectExpression.Projection);
 
             return crossJoinLateralExpression;
         }
@@ -895,36 +923,36 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         /// <summary>
         ///     Adds a SQL INNER JOIN to this SelectExpression.
         /// </summary>
-        /// <param name="tableExpression"> The target table expression. </param>
-        public virtual PredicateJoinExpressionBase AddInnerJoin([NotNull] TableExpressionBase tableExpression)
-        {
-            Check.NotNull(tableExpression, nameof(tableExpression));
-
-            return AddInnerJoin(tableExpression, Enumerable.Empty<AliasExpression>(), innerPredicate: null);
-        }
-
-        /// <summary>
-        ///     Adds a SQL INNER JOIN to this SelectExpression.
-        /// </summary>
-        /// <param name="tableExpression"> The target table expression. </param>
-        /// <param name="projection"> A sequence of expressions that should be added to the projection. </param>
-        /// <param name="innerPredicate">A predicate which should be appended to current predicate. </param>
+        /// <param name="joinedSelectExpression"> The target table expression. </param>
+        /// <param name="copyProjections"> A sequence of expressions that should be added to the projection. </param>
         public virtual PredicateJoinExpressionBase AddInnerJoin(
-            [NotNull] TableExpressionBase tableExpression,
-            [NotNull] IEnumerable<Expression> projection,
-            [CanBeNull] Expression innerPredicate)
+            [NotNull] SelectExpression joinedSelectExpression,
+            bool copyProjections)
         {
-            Check.NotNull(tableExpression, nameof(tableExpression));
-            Check.NotNull(projection, nameof(projection));
+            Check.NotNull(joinedSelectExpression, nameof(joinedSelectExpression));
 
-            var innerJoinExpression = new InnerJoinExpression(tableExpression);
+            if (!joinedSelectExpression.IsIdentityQuery() && joinedSelectExpression.Predicate == null)
+            {
+                joinedSelectExpression.PushDownSubquery();
+                joinedSelectExpression.ExplodeStarProjection();
+            }
+
+            var innerJoinExpression = new InnerJoinExpression(joinedSelectExpression.ProjectStarTable);
 
             _tables.Add(innerJoinExpression);
-            _projection.AddRange(projection);
 
-            if (innerPredicate != null)
+            if (joinedSelectExpression.Predicate != null)
             {
-                AddToPredicate(innerPredicate);
+                AddToPredicate(joinedSelectExpression.Predicate);
+            }
+            
+            if (copyProjections)
+            {
+                _projection.AddRange(joinedSelectExpression.Projection);
+                foreach (var kvp in joinedSelectExpression._memberInfoProjectionMapping)
+                {
+                    _memberInfoProjectionMapping.Add(kvp.Key, kvp.Value);
+                }
             }
 
             return innerJoinExpression;
@@ -933,30 +961,39 @@ namespace Microsoft.EntityFrameworkCore.Query.Expressions
         /// <summary>
         ///     Adds a SQL LEFT OUTER JOIN to this SelectExpression.
         /// </summary>
-        /// <param name="tableExpression"> The target table expression. </param>
-        public virtual PredicateJoinExpressionBase AddLeftOuterJoin([NotNull] TableExpressionBase tableExpression)
-        {
-            Check.NotNull(tableExpression, nameof(tableExpression));
-
-            return AddLeftOuterJoin(tableExpression, Enumerable.Empty<AliasExpression>());
-        }
-
-        /// <summary>
-        ///     Adds a SQL LEFT OUTER JOIN to this SelectExpression.
-        /// </summary>
-        /// <param name="tableExpression"> The target table expression. </param>
-        /// <param name="projection"> A sequence of expressions that should be added to the projection. </param>
+        /// <param name="joinedSelectExpression"> The target table expression. </param>
+        /// <param name="copyProjections"> A sequence of expressions that should be added to the projection. </param>
         public virtual PredicateJoinExpressionBase AddLeftOuterJoin(
-            [NotNull] TableExpressionBase tableExpression,
-            [NotNull] IEnumerable<Expression> projection)
+            [NotNull] SelectExpression joinedSelectExpression,
+            bool copyProjections)
         {
-            Check.NotNull(tableExpression, nameof(tableExpression));
-            Check.NotNull(projection, nameof(projection));
+            Check.NotNull(joinedSelectExpression, nameof(joinedSelectExpression));
 
-            var outerJoinExpression = new LeftOuterJoinExpression(tableExpression);
+            if (_limit != null
+                || _offset != null)
+            {
+                PushDownSubquery();
+                ExplodeStarProjection();
+            }
+
+            if (!joinedSelectExpression.IsIdentityQuery())
+            {
+                joinedSelectExpression.PushDownSubquery();
+                joinedSelectExpression.ExplodeStarProjection();
+            }
+
+            var outerJoinExpression = new LeftOuterJoinExpression(joinedSelectExpression.ProjectStarTable);
 
             _tables.Add(outerJoinExpression);
-            _projection.AddRange(projection);
+
+            if (copyProjections)
+            {
+                _projection.AddRange(joinedSelectExpression.Projection);
+                foreach (var kvp in joinedSelectExpression._memberInfoProjectionMapping)
+                {
+                    _memberInfoProjectionMapping.Add(kvp.Key, kvp.Value);
+                }
+            }
 
             return outerJoinExpression;
         }
