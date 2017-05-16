@@ -28,7 +28,9 @@ namespace Microsoft.EntityFrameworkCore.SqlServer.FunctionalTests
             await base.ToList_on_nav_in_projection_is_async();
 
             Assert.Contains(
-                @"_SelectAsync(
+                @"_InterceptExceptions(
+    source: IAsyncEnumerable<<>f__AnonymousType16<Customer, List<Order>>> _TrackEntities(
+        results: IAsyncEnumerable<<>f__AnonymousType16<Customer, List<Order>>> _SelectAsync(
             source: IAsyncEnumerable<Customer> _ShapedQuery(
                 queryContext: queryContext, 
                 shaperCommandContext: SelectExpression: 
@@ -36,7 +38,7 @@ namespace Microsoft.EntityFrameworkCore.SqlServer.FunctionalTests
                     FROM [Customers] AS [c]
                     WHERE [c].[CustomerID] = N'ALFKI', 
                 shaper: BufferedEntityShaper<Customer>), 
-            selector: (Customer c | CancellationToken ct) => Task<<>f__AnonymousType3<Customer, List<Order>>> _ExecuteAsync(
+            selector: (Customer c | CancellationToken ct) => Task<<>f__AnonymousType16<Customer, List<Order>>> _ExecuteAsync(
                 taskFactories: new Func<Task<object>>[]{ () => Task<object> _ToObjectTask(Task<List<Order>> ToList((IAsyncEnumerable<Order>)EnumerableAdapter<Order> _ToEnumerable(IAsyncEnumerable<Order> _InjectParameters(
                                     queryContext: queryContext, 
                                     source: IAsyncEnumerable<Order> _ShapedQuery(
@@ -50,7 +52,7 @@ namespace Microsoft.EntityFrameworkCore.SqlServer.FunctionalTests
                                     parameterValues: new object[]{ string GetValueFromEntity(
                                             clrPropertyGetter: ClrPropertyGetter<Customer, string>, 
                                             entity: c) })))) }, 
-                selector: (Object[] results) => new <>f__AnonymousType3<Customer, List<Order>>(
+                selector: (Object[] results) => new <>f__AnonymousType16<Customer, List<Order>>(
                     c, 
                     (List<Order>)results[0]
                 )))",

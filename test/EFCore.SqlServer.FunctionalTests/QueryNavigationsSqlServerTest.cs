@@ -685,6 +685,12 @@ WHERE @_outer_CustomerID = [o].[CustomerID]",
 
 SELECT [o].[OrderID], [o].[CustomerID], [o].[EmployeeID], [o].[OrderDate]
 FROM [Orders] AS [o]
+WHERE @_outer_CustomerID = [o].[CustomerID]",
+                //
+                @"@_outer_CustomerID: ANTON (Size = 450)
+
+SELECT [o].[OrderID], [o].[CustomerID], [o].[EmployeeID], [o].[OrderDate]
+FROM [Orders] AS [o]
 WHERE @_outer_CustomerID = [o].[CustomerID]");
         }
 
