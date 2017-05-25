@@ -415,6 +415,41 @@ namespace Microsoft.EntityFrameworkCore
         [ConditionalFact]
         public virtual void Select_collection_navigation_simple()
         {
+            using (var ctx = CreateContext())
+            {
+                //var query = from c in ctx.Customers
+                //            where c.CustomerID.StartsWith("A")
+                //            orderby c.CustomerID
+                //            select c.Orders;
+
+                var query = from c in ctx.Customers.Include(c => c.Orders)
+                            where c.CustomerID.StartsWith("A")
+                            orderby c.CustomerID
+                            select c.Orders;
+
+                var result = query.ToList();
+            }
+
+                //AssertQuery<Customer>(
+                //    cs => from c in cs
+                //          where c.CustomerID.StartsWith("A")
+                //          orderby c.CustomerID
+                //          select c.Orders,
+                //    asserter: (l2oItems, efItems) =>
+                //    {
+                //        foreach (var pair in
+                //            from dynamic l2oItem in l2oItems
+                //            join dynamic efItem in efItems on l2oItem.CustomerID equals efItem.CustomerID
+                //            select new { l2oItem, efItem })
+                //        {
+                //            Assert.Equal(pair.l2oItem.Orders, pair.efItem.Orders);
+                //        }
+                //    });
+        }
+
+        [ConditionalFact]
+        public virtual void Select_collection_navigation_anonymous_type()
+        {
             AssertQuery<Customer>(
                 cs => from c in cs
                       where c.CustomerID.StartsWith("A")

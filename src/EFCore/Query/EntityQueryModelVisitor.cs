@@ -28,6 +28,7 @@ using Remotion.Linq.Clauses.ExpressionVisitors;
 using Remotion.Linq.Clauses.ResultOperators;
 using Remotion.Linq.Clauses.StreamedData;
 using Remotion.Linq.Parsing;
+using Microsoft.EntityFrameworkCore.Query.ResultOperators;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
@@ -258,6 +259,10 @@ namespace Microsoft.EntityFrameworkCore.Query
 
             new NondeterministicResultCheckingVisitor(QueryCompilationContext.Logger).VisitQueryModel(queryModel);
 
+            var foo = new Foo(this);
+
+            foo.Visit(queryModel.SelectClause.Selector);
+
             // Rewrite includes/navigations
 
             var includeCompiler = new IncludeCompiler(QueryCompilationContext, _querySourceTracingExpressionVisitorFactory);
@@ -290,6 +295,47 @@ namespace Microsoft.EntityFrameworkCore.Query
             // Log results
 
             QueryCompilationContext.Logger.QueryModelOptimized(queryModel);
+        }
+
+        private class Foo : ExpressionVisitorBase
+        {
+            private EntityQueryModelVisitor _queryModelVisitor;
+
+            public Foo(EntityQueryModelVisitor queryModelVisitor)
+            {
+                _queryModelVisitor = queryModelVisitor;
+                IncludeAnnotations = new List<IQueryAnnotation>();
+            }
+
+            public List<IQueryAnnotation> IncludeAnnotations { get; }
+
+            protected override Expression VisitMember(MemberExpression node)
+            {
+                var result = _queryModelVisitor.BindNavigationPathPropertyExpression(
+                        node,
+                        (ps, qs) =>
+                        {
+                            if (qs != null && ps.Count == 1 && ps[0] is INavigation navigation && navigation.IsCollection())
+                            {
+                                IncludeAnnotations.Add(
+                                    new IncludeResultOperator(new[] { navigation.Name }, new QuerySourceReferenceExpression(qs)));
+                            
+                                //    return RewriteNavigationProperties(
+                            //    ps,
+                            //    qs,
+                            //    node,
+                            //    node.Expression,
+                            //    node.Member.Name,
+                            //    node.Type,
+                            //    e => e.MakeMemberAccess(node.Member),
+                            //    e => new NullConditionalExpression(e, e.MakeMemberAccess(node.Member)));
+                            }
+
+                            return node;
+                        });
+
+                return base.VisitMember(node);
+            }
         }
 
         private class NondeterministicResultCheckingVisitor : QueryModelVisitorBase
