@@ -29,8 +29,9 @@ namespace Microsoft.EntityFrameworkCore.ReverseEngineering
             _output = output;
 
             var serviceBuilder = new ServiceCollection()
-                .AddScaffolding()
-                .AddLogging();
+                .AddScaffolding();
+
+            serviceBuilder.AddLogging();
 
             ConfigureDesignTimeServices(serviceBuilder);
 

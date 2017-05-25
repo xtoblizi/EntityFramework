@@ -38,10 +38,8 @@ namespace Microsoft.EntityFrameworkCore.Infrastructure
 
         private void FilterTest(Func<string, bool> filter, params string[] expected)
         {
-            var loggerFactory = new LoggerFactory();
             var loggerProvider = new TestLoggerProvider(filter);
-
-            loggerFactory.AddProvider(loggerProvider);
+            var loggerFactory = new LoggerFactory(new [] { loggerProvider });
 
             var dbLogger = new DiagnosticsLogger<DbLoggerCategory.Database>(loggerFactory, new LoggingOptions(), new DiagnosticListener("Fake"));
             var sqlLogger = new DiagnosticsLogger<DbLoggerCategory.Database.Command>(loggerFactory, new LoggingOptions(), new DiagnosticListener("Fake"));

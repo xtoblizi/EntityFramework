@@ -2288,10 +2288,11 @@ namespace Microsoft.EntityFrameworkCore
         [Fact]
         public void Can_use_derived_context_with_external_services()
         {
-            var appServiceProivder = new ServiceCollection()
-                .AddLogging()
-                .AddMemoryCache()
-                .BuildServiceProvider();
+            var serviceCollection = new ServiceCollection()
+                .AddMemoryCache();
+            serviceCollection.AddLogging();
+
+            var appServiceProivder = serviceCollection.BuildServiceProvider();
 
             var loggerFactory = new WrappingLoggerFactory(appServiceProivder.GetService<ILoggerFactory>());
             var memoryCache = appServiceProivder.GetService<IMemoryCache>();
@@ -2347,10 +2348,11 @@ namespace Microsoft.EntityFrameworkCore
         [Fact]
         public void Can_use_derived_context_with_options_and_external_services()
         {
-            var appServiceProivder = new ServiceCollection()
-                .AddLogging()
-                .AddMemoryCache()
-                .BuildServiceProvider();
+            var serviceCollection = new ServiceCollection()
+                .AddMemoryCache();
+            serviceCollection.AddLogging();
+
+            var appServiceProivder = serviceCollection.BuildServiceProvider();
 
             var loggerFactory = new WrappingLoggerFactory(appServiceProivder.GetService<ILoggerFactory>());
             var memoryCache = appServiceProivder.GetService<IMemoryCache>();
@@ -2481,10 +2483,11 @@ namespace Microsoft.EntityFrameworkCore
         [Fact]
         public void Can_use_derived_context_with_options_and_external_services_no_OnConfiguring()
         {
-            var appServiceProivder = new ServiceCollection()
-                .AddLogging()
-                .AddMemoryCache()
-                .BuildServiceProvider();
+            var serviceCollection = new ServiceCollection()
+                .AddMemoryCache();
+            serviceCollection.AddLogging();
+
+            var appServiceProivder = serviceCollection.BuildServiceProvider();
 
             var loggerFactory = new WrappingLoggerFactory(appServiceProivder.GetService<ILoggerFactory>());
             var memoryCache = appServiceProivder.GetService<IMemoryCache>();
@@ -2585,10 +2588,11 @@ namespace Microsoft.EntityFrameworkCore
         [Fact]
         public void Can_use_non_derived_context_with_options_and_external_services()
         {
-            var appServiceProivder = new ServiceCollection()
-                .AddLogging()
-                .AddMemoryCache()
-                .BuildServiceProvider();
+            var serviceCollection = new ServiceCollection()
+                .AddMemoryCache();
+            serviceCollection.AddLogging();
+
+            var appServiceProivder = serviceCollection.BuildServiceProvider();
 
             var loggerFactory = new WrappingLoggerFactory(appServiceProivder.GetService<ILoggerFactory>());
             var memoryCache = appServiceProivder.GetService<IMemoryCache>();

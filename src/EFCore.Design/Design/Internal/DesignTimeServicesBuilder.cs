@@ -74,13 +74,17 @@ namespace Microsoft.EntityFrameworkCore.Design.Internal
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
         protected virtual IServiceCollection ConfigureServices([NotNull] IServiceCollection services)
-            => services
+        {
+            services
                 .AddSingleton<CSharpHelper>()
                 .AddSingleton<CSharpMigrationOperationGenerator>()
                 .AddSingleton<CSharpSnapshotGenerator>()
                 .AddSingleton<MigrationsCodeGenerator, CSharpMigrationsGenerator>()
                 .AddScaffolding()
                 .AddLogging();
+
+            return services;
+        }
 
         private IServiceCollection ConfigureProviderServices(string provider, IServiceCollection services, bool throwOnError = false)
             => ConfigureDesignTimeServices(GetProviderDesignTimeServices(provider, throwOnError), services);

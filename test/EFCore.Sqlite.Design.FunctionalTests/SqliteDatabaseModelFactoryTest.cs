@@ -25,8 +25,10 @@ namespace Microsoft.EntityFrameworkCore
             _testStore = SqliteTestStore.CreateScratch();
 
             var serviceCollection = new ServiceCollection().AddScaffolding()
-                .AddLogging()
                 .AddSingleton<ILoggerFactory>(new TestDesignLoggerFactory());
+
+            serviceCollection.AddLogging();
+
             new SqliteDesignTimeServices().ConfigureDesignTimeServices(serviceCollection);
 
             var serviceProvider = serviceCollection.BuildServiceProvider();

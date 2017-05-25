@@ -15,8 +15,7 @@ namespace Microsoft.EntityFrameworkCore.Design.Internal
         public void Log_dampens_logLevel_when_ExecutedCommand()
         {
             var reporter = new TestOperationReporter();
-            var loggerFactory = new LoggerFactory();
-            loggerFactory.AddProvider(new LoggerProvider(categoryName => new OperationLogger(categoryName, reporter)));
+            var loggerFactory = new LoggerFactory(new [] { new LoggerProvider(categoryName => new OperationLogger(categoryName, reporter)) });
 
             var logger = loggerFactory.CreateLogger(DbLoggerCategory.Database.Command.Name);
             logger.Log<object>(
