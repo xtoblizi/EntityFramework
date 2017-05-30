@@ -324,7 +324,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                             if (qs != null && ps.Count == 1 && ps[0] is INavigation navigation && navigation.IsCollection())
                             {
                                 IncludeAnnotations.Add(
-                                    new CollectionNavigationIncludeResultOperator(navigation, qs));
+                                    new CollectionNavigationIncludeResultOperator(navigation, qs, node));
                             
                                 //    return RewriteNavigationProperties(
                             //    ps,

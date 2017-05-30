@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
+using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query.Internal
 {
@@ -13,8 +14,11 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
     {
         private sealed class IncludeLoadTree : IncludeLoadTreeNodeBase
         {
-            public IncludeLoadTree(QuerySourceReferenceExpression querySourceReferenceExpression)
-                => QuerySourceReferenceExpression = querySourceReferenceExpression;
+            public IncludeLoadTree(QuerySourceReferenceExpression querySourceReferenceExpression, Expression collectionExpression = null)
+            {
+                QuerySourceReferenceExpression = querySourceReferenceExpression;
+                CollectionExpression = collectionExpression;
+            }
 
             public QuerySourceReferenceExpression QuerySourceReferenceExpression { get; }
 
@@ -49,7 +53,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                             new SelectClause(querySourceReferenceExpression));
 
                     ApplyIncludeExpressionsToQueryModel(
-                        queryModel, QuerySourceReferenceExpression, new SubQueryExpression(subQueryModel));
+                        queryModel, QuerySourceReferenceExpression, new SubQueryExpression(subQueryModel), CollectionExpression);
 
                     queryModel = subQueryModel;
                 }
@@ -60,7 +64,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                     trackingQuery,
                     asyncQuery,
                     ref collectionIncludeId,
-                    querySourceReferenceExpression);
+                    querySourceReferenceExpression,
+                    CollectionExpression);
             }
         }
     }

@@ -27,10 +27,11 @@ namespace Microsoft.EntityFrameworkCore.Query.ResultOperators.Internal
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
         public CollectionNavigationIncludeResultOperator(
-            [NotNull] INavigation navigationPropertyPath, [NotNull] IQuerySource querySource)
+            [NotNull] INavigation navigationPropertyPath, [NotNull] IQuerySource querySource, Expression collectionExpression)
         {
             _navigationPropertyPath = navigationPropertyPath;
             _querySource = querySource;
+            CollectionExpression = collectionExpression;
         }
 
         /// <summary>
@@ -51,6 +52,12 @@ namespace Microsoft.EntityFrameworkCore.Query.ResultOperators.Internal
         /// </summary>
         public virtual QueryModel QueryModel { get; set; }
 
+        /// <summary>
+        ///     This API supports the Entity Framework Core infrastructure and is not intended to be used
+        ///     directly from your code. This API may change or be removed in future releases.
+        /// </summary>
+        public virtual Expression CollectionExpression { get; set; }
+
         IQuerySource IQueryAnnotation.QuerySource
         {
             get => _querySource;
@@ -62,7 +69,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ResultOperators.Internal
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
         public override ResultOperatorBase Clone(CloneContext cloneContext)
-            => new CollectionNavigationIncludeResultOperator(_navigationPropertyPath, _querySource);
+            => new CollectionNavigationIncludeResultOperator(_navigationPropertyPath, _querySource, CollectionExpression);
 
         /// <summary>
         ///     This API supports the Entity Framework Core infrastructure and is not intended to be used

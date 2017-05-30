@@ -12,6 +12,7 @@ using Remotion.Linq;
 using Remotion.Linq.Clauses.Expressions;
 using Remotion.Linq.Clauses.ResultOperators;
 using Remotion.Linq.Parsing;
+using Microsoft.EntityFrameworkCore.Extensions.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Query.Internal
 {
@@ -47,7 +48,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 bool trackingQuery,
                 bool asyncQuery,
                 ref int collectionIncludeId,
-                QuerySourceReferenceExpression targetQuerySourceReferenceExpression)
+                QuerySourceReferenceExpression targetQuerySourceReferenceExpression,
+                Expression collectionExpression)
             {
                 var entityParameter
                     = Expression.Parameter(targetQuerySourceReferenceExpression.Type, name: "entity");
@@ -121,14 +123,15 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                                     _includedParameter));
 
                     ApplyIncludeExpressionsToQueryModel(
-                        queryModel, targetQuerySourceReferenceExpression, includeExpression);
+                        queryModel, targetQuerySourceReferenceExpression, includeExpression, collectionExpression);
                 }
             }
 
             protected static void ApplyIncludeExpressionsToQueryModel(
                 QueryModel queryModel,
                 QuerySourceReferenceExpression querySourceReferenceExpression,
-                Expression expression)
+                Expression expression,
+                Expression collectionExpression)
             {
                 var includeReplacingExpressionVisitor = new IncludeReplacingExpressionVisitor();
 
@@ -203,14 +206,17 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
             {
                 private QuerySourceReferenceExpression _querySourceReferenceExpression;
                 private Expression _includeExpression;
+                private Expression _collectionExpression;
 
                 public Expression Replace(
                     QuerySourceReferenceExpression querySourceReferenceExpression,
                     Expression includeExpression,
-                    Expression searchedExpression)
+                    Expression searchedExpression,
+                    Expression collectionExpression = null)
                 {
                     _querySourceReferenceExpression = querySourceReferenceExpression;
                     _includeExpression = includeExpression;
+                    _collectionExpression = collectionExpression;
 
                     return Visit(searchedExpression);
                 }
@@ -226,6 +232,20 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                     }
 
                     return querySourceReferenceExpression;
+                }
+
+                protected override Expression VisitMember(MemberExpression node)
+                {
+                    return node == _collectionExpression
+                        ? base.VisitMember(node)
+                        : node;
+                }
+
+                protected override Expression VisitMethodCall(MethodCallExpression node)
+                {
+                    return node.Method.IsEFPropertyMethod() && node != _collectionExpression
+                        ? node
+                        : base.VisitMethodCall(node);
                 }
             }
         }

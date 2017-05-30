@@ -176,11 +176,11 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                     // includeResultOperator.GetNavigationPath(_queryCompilationContext);
 
                 var querySourceReferenceExpression
-                    = querySourceTracingExpressionVisitor
+                    = new QuerySourceTracingExpressionVisitor2()
                         .FindResultQuerySourceReferenceExpression(
                             targetExpression,
                             collectionNavgationIncludeResultOperator.QuerySource,
-                            visitPropertyAccess: true);
+                            collectionNavgationIncludeResultOperator.CollectionExpression);
 
                 if (querySourceReferenceExpression == null
                     || navigationPath == null)
@@ -191,12 +191,12 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 var includeLoadTree
                     = includeLoadTrees
                         .SingleOrDefault(
-                            t => ReferenceEquals(
-                                t.QuerySourceReferenceExpression, querySourceReferenceExpression));
+                            t => ReferenceEquals(t.QuerySourceReferenceExpression, querySourceReferenceExpression)
+                                && ReferenceEquals(t.CollectionExpression, collectionNavgationIncludeResultOperator.CollectionExpression));
 
                 if (includeLoadTree == null)
                 {
-                    includeLoadTrees.Add(includeLoadTree = new IncludeLoadTree(querySourceReferenceExpression));
+                    includeLoadTrees.Add(includeLoadTree = new IncludeLoadTree(querySourceReferenceExpression, collectionNavgationIncludeResultOperator.CollectionExpression));
                 }
 
                 includeLoadTree.AddLoadPath(new[] { navigationPath });

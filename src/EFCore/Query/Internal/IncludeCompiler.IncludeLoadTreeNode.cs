@@ -38,9 +38,15 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 = typeof(IQueryBuffer).GetTypeInfo()
                     .GetDeclaredMethod(nameof(IQueryBuffer.IncludeCollectionAsync));
 
-            public IncludeLoadTreeNode(INavigation navigation) => Navigation = navigation;
+            public IncludeLoadTreeNode(INavigation navigation, Expression collectionExpression)
+            {
+                Navigation = navigation;
+                CollectionExpression = collectionExpression;
+            }
 
             public INavigation Navigation { get; }
+
+            public Expression CollectionExpression { get; }
 
             public Expression Compile(
                 QueryCompilationContext queryCompilationContext,
@@ -50,7 +56,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 bool trackingQuery,
                 bool asyncQuery,
                 ref int includedIndex,
-                ref int collectionIncludeId)
+                ref int collectionIncludeId,
+                Expression collectionExpression)
                 => Navigation.IsCollection()
                     ? CompileCollectionInclude(
                         queryCompilationContext,
@@ -58,7 +65,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                         entityParameter,
                         trackingQuery,
                         asyncQuery,
-                        ref collectionIncludeId)
+                        ref collectionIncludeId,
+                        collectionExpression)
                     : CompileReferenceInclude(
                         queryCompilationContext,
                         propertyExpressions,
@@ -75,7 +83,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 Expression entityParameter,
                 bool trackingQuery,
                 bool asyncQuery,
-                ref int collectionIncludeId)
+                ref int collectionIncludeId,
+                Expression collectionExpression)
             {
                 int collectionId;
 
@@ -117,7 +126,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                     trackingQuery,
                     asyncQuery,
                     ref collectionIncludeId,
-                    querySourceReferenceExpression);
+                    querySourceReferenceExpression,
+                    collectionExpression);
 
                 Expression collectionLambdaExpression
                     = Expression.Lambda<Func<IEnumerable<object>>>(
@@ -285,7 +295,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                             trackingQuery,
                             asyncQuery,
                             ref includedIndex,
-                            ref collectionIncludeId));
+                            ref collectionIncludeId,
+                            includeLoadTreeNode.));
                 }
 
                 AwaitTaskExpressions(asyncQuery, blockExpressions);
