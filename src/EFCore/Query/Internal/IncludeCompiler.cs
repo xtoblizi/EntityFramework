@@ -154,6 +154,74 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 _includeResultOperators.Remove(includeResultOperator);
             }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            foreach (var collectionNavgationIncludeResultOperator in _queryCompilationContext.QueryAnnotations.OfType<CollectionNavigationIncludeResultOperator>())
+            {
+                var navigationPath = collectionNavgationIncludeResultOperator.Navigation;
+
+                    // includeResultOperator.GetNavigationPath(_queryCompilationContext);
+
+                var querySourceReferenceExpression
+                    = querySourceTracingExpressionVisitor
+                        .FindResultQuerySourceReferenceExpression(
+                            targetExpression,
+                            collectionNavgationIncludeResultOperator.QuerySource,
+                            visitPropertyAccess: true);
+
+                if (querySourceReferenceExpression == null
+                    || navigationPath == null)
+                {
+                    continue;
+                }
+
+                var includeLoadTree
+                    = includeLoadTrees
+                        .SingleOrDefault(
+                            t => ReferenceEquals(
+                                t.QuerySourceReferenceExpression, querySourceReferenceExpression));
+
+                if (includeLoadTree == null)
+                {
+                    includeLoadTrees.Add(includeLoadTree = new IncludeLoadTree(querySourceReferenceExpression));
+                }
+
+                includeLoadTree.AddLoadPath(new[] { navigationPath });
+
+                //_queryCompilationContext.Logger.NavigationIncluded(includeResultOperator.DisplayString());
+
+                //_includeResultOperators.Remove(includeResultOperator);
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             return includeLoadTrees;
         }
 

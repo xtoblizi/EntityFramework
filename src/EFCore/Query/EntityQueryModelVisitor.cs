@@ -263,6 +263,9 @@ namespace Microsoft.EntityFrameworkCore.Query
 
             foo.Visit(queryModel.SelectClause.Selector);
 
+            QueryCompilationContext.QueryAnnotations = new ReadOnlyCollection<IQueryAnnotation>(
+                QueryCompilationContext.QueryAnnotations.Concat(foo.IncludeAnnotations).ToList());
+
             // Rewrite includes/navigations
 
             var includeCompiler = new IncludeCompiler(QueryCompilationContext, _querySourceTracingExpressionVisitorFactory);
@@ -297,6 +300,9 @@ namespace Microsoft.EntityFrameworkCore.Query
             QueryCompilationContext.Logger.QueryModelOptimized(queryModel);
         }
 
+
+        //private class Foo2 : TransformingQueryModelExpressionVisitor<>
+
         private class Foo : ExpressionVisitorBase
         {
             private EntityQueryModelVisitor _queryModelVisitor;
@@ -318,7 +324,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                             if (qs != null && ps.Count == 1 && ps[0] is INavigation navigation && navigation.IsCollection())
                             {
                                 IncludeAnnotations.Add(
-                                    new IncludeResultOperator(new[] { navigation.Name }, new QuerySourceReferenceExpression(qs)));
+                                    new CollectionNavigationIncludeResultOperator(navigation, qs));
                             
                                 //    return RewriteNavigationProperties(
                             //    ps,
@@ -335,6 +341,11 @@ namespace Microsoft.EntityFrameworkCore.Query
                         });
 
                 return base.VisitMember(node);
+            }
+
+            protected override Expression VisitSubQuery(SubQueryExpression subQueryExpression)
+            {
+                return subQueryExpression;
             }
         }
 

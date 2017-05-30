@@ -413,6 +413,20 @@ namespace Microsoft.EntityFrameworkCore
         }
 
         [ConditionalFact]
+        public virtual void Foo()
+        {
+            using (var ctx = CreateContext())
+            {
+                var query = from c in ctx.Customers
+                            where c.CustomerID.StartsWith("A")
+                            orderby c.CustomerID
+                            select c.Orders;
+
+                var result = query.ToList();
+            }
+        }
+
+        [ConditionalFact]
         public virtual void Select_collection_navigation_simple()
         {
             using (var ctx = CreateContext())

@@ -18,6 +18,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal
     {
         private IQuerySource _targetQuerySource;
         private QuerySourceReferenceExpression _originQuerySourceReferenceExpression;
+        private bool _visitPropertyAccess;
 
         private bool _reachable;
 
@@ -27,12 +28,14 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal
         /// </summary>
         public virtual QuerySourceReferenceExpression FindResultQuerySourceReferenceExpression(
             [NotNull] Expression expression,
-            [NotNull] IQuerySource targetQuerySource)
+            [NotNull] IQuerySource targetQuerySource,
+            bool visitPropertyAccess = false)
         {
             _targetQuerySource = targetQuerySource;
 
             _originQuerySourceReferenceExpression = null;
             _reachable = false;
+            _visitPropertyAccess = visitPropertyAccess;
 
             Visit(expression);
 
@@ -121,14 +124,14 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal
 
         // Prune these nodes...
 
-        ///// <summary>
-        /////     This API supports the Entity Framework Core infrastructure and is not intended to be used
-        /////     directly from your code. This API may change or be removed in future releases.
-        ///// </summary>
-        //protected override Expression VisitMember(MemberExpression node)
-        //    => node.Expression.RemoveConvert() is QuerySourceReferenceExpression
-        //        ? node
-        //        : base.VisitMember(node);
+        /// <summary>
+        ///     This API supports the Entity Framework Core infrastructure and is not intended to be used
+        ///     directly from your code. This API may change or be removed in future releases.
+        /// </summary>
+        protected override Expression VisitMember(MemberExpression node)
+            => node.Expression.RemoveConvert() is QuerySourceReferenceExpression && !_visitPropertyAccess
+                ? node
+                : base.VisitMember(node);
 
         /// <summary>
         ///     This API supports the Entity Framework Core infrastructure and is not intended to be used
@@ -153,7 +156,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
         protected override Expression VisitMethodCall(MethodCallExpression node)
-            => node.Method.IsEFPropertyMethod()
+            => node.Method.IsEFPropertyMethod() && !_visitPropertyAccess
                 ? node
                 : base.VisitMethodCall(node);
     }
