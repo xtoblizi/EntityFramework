@@ -38,15 +38,15 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 = typeof(IQueryBuffer).GetTypeInfo()
                     .GetDeclaredMethod(nameof(IQueryBuffer.IncludeCollectionAsync));
 
-            public IncludeLoadTreeNode(INavigation navigation, Expression collectionExpression)
+            public IncludeLoadTreeNode(INavigation navigation/*, Expression collectionExpression*/)
             {
                 Navigation = navigation;
-                CollectionExpression = collectionExpression;
+                //CollectionExpression = collectionExpression;
             }
 
             public INavigation Navigation { get; }
 
-            public Expression CollectionExpression { get; }
+            //public Expression CollectionExpression { get; }
 
             public Expression Compile(
                 QueryCompilationContext queryCompilationContext,
@@ -296,7 +296,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                             asyncQuery,
                             ref includedIndex,
                             ref collectionIncludeId,
-                            includeLoadTreeNode.));
+                            collectionExpression: null));
                 }
 
                 AwaitTaskExpressions(asyncQuery, blockExpressions);

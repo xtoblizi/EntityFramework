@@ -478,7 +478,8 @@ namespace Microsoft.EntityFrameworkCore
                         {
                             Assert.Equal(pair.l2oItem.Orders, pair.efItem.Orders);
                         }
-                    });
+                    },
+                entryCount: 34);
         }
 
         [ConditionalFact]

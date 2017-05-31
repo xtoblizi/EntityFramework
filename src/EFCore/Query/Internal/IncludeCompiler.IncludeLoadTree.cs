@@ -14,13 +14,15 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
     {
         private sealed class IncludeLoadTree : IncludeLoadTreeNodeBase
         {
-            public IncludeLoadTree(QuerySourceReferenceExpression querySourceReferenceExpression, Expression collectionExpression = null)
+            public IncludeLoadTree(QuerySourceReferenceExpression querySourceReferenceExpression, Expression collectionExpression)
             {
                 QuerySourceReferenceExpression = querySourceReferenceExpression;
                 CollectionExpression = collectionExpression;
             }
 
             public QuerySourceReferenceExpression QuerySourceReferenceExpression { get; }
+
+            public Expression CollectionExpression { get; }
 
             public void AddLoadPath(IReadOnlyList<INavigation> navigationPath)
             {

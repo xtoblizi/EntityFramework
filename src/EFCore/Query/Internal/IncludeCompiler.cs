@@ -144,7 +144,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
 
                 if (includeLoadTree == null)
                 {
-                    includeLoadTrees.Add(includeLoadTree = new IncludeLoadTree(querySourceReferenceExpression));
+                    includeLoadTrees.Add(includeLoadTree = new IncludeLoadTree(querySourceReferenceExpression, collectionExpression: null));
                 }
 
                 includeLoadTree.AddLoadPath(navigationPath);

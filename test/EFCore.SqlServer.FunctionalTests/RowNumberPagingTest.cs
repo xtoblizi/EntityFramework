@@ -789,6 +789,15 @@ FROM (
 ) AS [t]");
         }
 
+        public override void Select_anonymous_one()
+        {
+            base.Select_anonymous_one();
+
+            AssertSql(
+                @"SELECT [c].[City]
+FROM [Customers] AS [c]");
+        }
+
         private void AssertSql(params string[] expected)
             => Fixture.TestSqlLoggerFactory.AssertBaseline(expected);
         

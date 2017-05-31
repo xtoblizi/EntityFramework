@@ -85,7 +85,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                             trackingQuery,
                             asyncQuery,
                             ref includedIndex,
-                            ref collectionIncludeId));
+                            ref collectionIncludeId,
+                            collectionExpression));
                 }
 
                 if (blockExpressions.Count > 1
@@ -156,7 +157,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                     e => includeReplacingExpressionVisitor.Replace(
                         querySourceReferenceExpression,
                         expression,
-                        e));
+                        e,
+                        collectionExpression ));
             }
 
             protected static void AwaitTaskExpressions(bool asyncQuery, List<Expression> blockExpressions)
@@ -236,6 +238,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
 
                 protected override Expression VisitMember(MemberExpression node)
                 {
+                    // TODO: reference equals?
                     return node == _collectionExpression
                         ? base.VisitMember(node)
                         : node;
@@ -243,6 +246,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
 
                 protected override Expression VisitMethodCall(MethodCallExpression node)
                 {
+                    // TODO: reference equals?
                     return node.Method.IsEFPropertyMethod() && node != _collectionExpression
                         ? node
                         : base.VisitMethodCall(node);

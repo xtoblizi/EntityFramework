@@ -518,34 +518,19 @@ ORDER BY [t].[CustomerID]");
             base.Select_collection_navigation_anonymous_type();
 
             AssertSql(
-                @"SELECT [c].[CustomerID]
+                @"SELECT [c].[CustomerID], [c].[Address], [c].[City], [c].[CompanyName], [c].[ContactName], [c].[ContactTitle], [c].[Country], [c].[Fax], [c].[Phone], [c].[PostalCode], [c].[Region]
 FROM [Customers] AS [c]
 WHERE [c].[CustomerID] LIKE N'A' + N'%' AND (LEFT([c].[CustomerID], LEN(N'A')) = N'A')
 ORDER BY [c].[CustomerID]",
                 //
-                @"@_outer_CustomerID: ALFKI (Size = 450)
-
-SELECT [o].[OrderID], [o].[CustomerID], [o].[EmployeeID], [o].[OrderDate]
-FROM [Orders] AS [o]
-WHERE @_outer_CustomerID = [o].[CustomerID]",
-                //
-                @"@_outer_CustomerID: ANATR (Size = 450)
-
-SELECT [o].[OrderID], [o].[CustomerID], [o].[EmployeeID], [o].[OrderDate]
-FROM [Orders] AS [o]
-WHERE @_outer_CustomerID = [o].[CustomerID]",
-                //
-                @"@_outer_CustomerID: ANTON (Size = 450)
-
-SELECT [o].[OrderID], [o].[CustomerID], [o].[EmployeeID], [o].[OrderDate]
-FROM [Orders] AS [o]
-WHERE @_outer_CustomerID = [o].[CustomerID]",
-                //
-                @"@_outer_CustomerID: AROUT (Size = 450)
-
-SELECT [o].[OrderID], [o].[CustomerID], [o].[EmployeeID], [o].[OrderDate]
-FROM [Orders] AS [o]
-WHERE @_outer_CustomerID = [o].[CustomerID]");
+                @"SELECT [c.Orders].[OrderID], [c.Orders].[CustomerID], [c.Orders].[EmployeeID], [c.Orders].[OrderDate]
+FROM [Orders] AS [c.Orders]
+INNER JOIN (
+    SELECT [c0].[CustomerID]
+    FROM [Customers] AS [c0]
+    WHERE [c0].[CustomerID] LIKE N'A' + N'%' AND (LEFT([c0].[CustomerID], LEN(N'A')) = N'A')
+) AS [t] ON [c.Orders].[CustomerID] = [t].[CustomerID]
+ORDER BY [t].[CustomerID]");
         }
 
         public override void Select_collection_navigation_multi_part()
