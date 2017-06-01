@@ -3295,88 +3295,113 @@ namespace Microsoft.EntityFrameworkCore
         [ConditionalFact]
         public virtual void Project_collection_navigation()
         {
-            using (var ctx = CreateContext())
-            {
-                var query = from l1 in ctx.LevelOne
-                            select l1.OneToMany_Optional;
+            AssertQuery<Level1>(
+                l1s => from l1 in l1s
+                       select l1.OneToMany_Optional,
+                elementSorter: e => e != null ? e.Count : 0,
+                elementAsserter: (e, a) =>
+                    {
+                        var actualCollection = new List<Level2>();
+                        foreach (var actualElement in a)
+                        {
+                            actualCollection.Add(actualElement);
+                        }
 
-                var result = query.ToList();
-            }
+                        Assert.Equal(((IEnumerable<Level2>)e)?.Count() ?? 0, actualCollection.Count);
+                    });
         }
 
         [ConditionalFact]
         public virtual void Project_collection_navigation_nested()
         {
-            using (var ctx = CreateContext())
-            {
-                var query = from l1 in ctx.LevelOne
-                            select l1.OneToOne_Optional_FK.OneToMany_Optional;
+            AssertQuery<Level1>(
+                l1s => from l1 in l1s
+                       select l1.OneToOne_Optional_FK.OneToMany_Optional,
+                l1s => from l1 in l1s
+                       select Maybe(l1.OneToOne_Optional_FK, () => l1.OneToOne_Optional_FK.OneToMany_Optional),
+                elementSorter: e => e != null ? e.Count : 0,
+                elementAsserter: (e, a) =>
+                    {
+                        var actualCollection = new List<Level3>();
+                        foreach (var actualElement in a)
+                        {
+                            actualCollection.Add(actualElement);
+                        }
 
-                var result = query.ToList();
-            }
+                        Assert.Equal(((IEnumerable<Level3>)e)?.Count() ?? 0, actualCollection.Count);
+                    });
         }
-
 
         [ConditionalFact]
         public virtual void Project_collection_navigation_using_ef_property()
         {
-            using (var ctx = CreateContext())
-            {
-                var query = from l1 in ctx.LevelOne
-                            select EF.Property<ICollection<Level3>>(
-                                EF.Property<Level2>(
-                                    l1, 
-                                    "OneToOne_Optional_FK"), 
-                                "OneToMany_Optional");
+            AssertQuery<Level1>(
+                l1s => from l1 in l1s
+                       select EF.Property<ICollection<Level3>>(
+                           EF.Property<Level2>(
+                               l1,
+                               "OneToOne_Optional_FK"),
+                           "OneToMany_Optional"),
+                l1s => from l1 in l1s
+                       select Maybe(l1.OneToOne_Optional_FK, () => l1.OneToOne_Optional_FK.OneToMany_Optional),
+                elementSorter: e => e != null ? e.Count : 0,
+                elementAsserter: (e, a) =>
+                    {
+                        var actualCollection = new List<Level3>();
+                        foreach (var actualElement in a)
+                        {
+                            actualCollection.Add(actualElement);
+                        }
 
-                var result = query.ToList();
-            }
+                        Assert.Equal(((IEnumerable<Level3>)e)?.Count() ?? 0, actualCollection.Count);
+                    });
         }
 
         [ConditionalFact]
         public virtual void Project_collection_navigation_nested_anonymous()
         {
-            using (var ctx = CreateContext())
-            {
-                var query = from l1 in ctx.LevelOne
-                            select new { l1.Id, l1.OneToOne_Optional_FK.OneToMany_Optional };
+            AssertQuery<Level1>(
+                l1s => from l1 in l1s
+                       select new { l1.Id, l1.OneToOne_Optional_FK.OneToMany_Optional },
+                l1s => from l1 in l1s
+                       select new { l1.Id, OneToMany_Optional = Maybe(l1.OneToOne_Optional_FK, () => l1.OneToOne_Optional_FK.OneToMany_Optional) },
+                elementSorter: e => e.Id,
+                elementAsserter: (e, a) =>
+                    {
+                        Assert.Equal(e.Id, a.Id);
 
+                        var actualCollection = new List<Level3>();
+                        foreach (var actualElement in a.OneToMany_Optional)
+                        {
+                            actualCollection.Add(actualElement);
+                        }
 
-                //var query = from l1 in ctx.LevelOne.Include(l => l.OneToOne_Optional_FK.OneToMany_Optional)
-                //            select new { l1.Id, l1 };
-
-
-                var result = query.ToList();
-            }
+                        Assert.Equal(((IEnumerable<Level3>)e.OneToMany_Optional)?.Count() ?? 0, actualCollection.Count);
+                    });
         }
 
         [ConditionalFact]
         public virtual void Project_collection_navigation_count()
         {
-            using (var ctx = CreateContext())
-            {
-                var query = from l1 in ctx.LevelOne
-                            select new { l1.Id, l1.OneToOne_Optional_FK.OneToMany_Optional.Count };
-
-
-                //var query = from l1 in ctx.LevelOne.Include(l => l.OneToOne_Optional_FK.OneToMany_Optional)
-                //            select new { l1.Id, l1 };
-
-
-                var result = query.ToList();
-            }
+            AssertQuery<Level1>(
+                l1s => from l1 in l1s
+                       select new { l1.Id, l1.OneToOne_Optional_FK.OneToMany_Optional.Count },
+                l1s => from l1 in l1s
+                       select new
+                       {
+                           l1.Id,
+                           Count = MaybeScalar(
+                           l1.OneToOne_Optional_FK,
+                           () => MaybeScalar<int>(
+                               l1.OneToOne_Optional_FK.OneToMany_Optional,
+                               () => l1.OneToOne_Optional_FK.OneToMany_Optional.Count)) ?? 0
+                       },
+                elementSorter: e => e.Id);
         }
 
         [ConditionalFact]
         public virtual void Project_collection_navigation_composed()
         {
-            //AssertIncludeQuery<Level1>(
-            //    l1s => from l1 in l1s
-            //           where l1.Id < 3
-            //           select new { l1.Id, collection = l1.OneToMany_Optional.Where(l2 => l2.Name != "Foo") },
-            //    new List<IExpectedInclude> { new ExpectedInclude<Level1>(e => e.OneToMany_Optional, "OneToMany_Optional") },
-            //    elementSorter: e => e.Id);
-
             AssertQuery<Level1>(
                 l1s => from l1 in l1s
                        where l1.Id < 3
@@ -3394,16 +3419,48 @@ namespace Microsoft.EntityFrameworkCore
 
                     Assert.Equal(((IEnumerable<Level2>)e.collection).Count(), actualCollection.Count);
                 });
+        }
 
-            //using (var ctx = CreateContext())
-            //{
-            //    var query = ;
+        [ConditionalFact]
+        public virtual void Project_collection_and_root_entity()
+        {
+            AssertQuery<Level1>(
+                l1s => from l1 in l1s
+                       select new { l1, l1.OneToMany_Optional },
+                elementSorter: e => e.l1.Id,
+                elementAsserter: (e, a) =>
+                {
+                    Assert.Equal(e.l1.Id, a.l1.Id);
 
-            //    //var query = from l1 in ctx.LevelOne.Include(l => l.OneToOne_Optional_FK.OneToMany_Optional)
-            //    //            select new { l1.Id, l1 };
+                    var actualCollection = new List<Level2>();
+                    foreach (var actualElement in a.OneToMany_Optional)
+                    {
+                        actualCollection.Add(actualElement);
+                    }
 
-            //    var result = query.ToList();
-            //}
+                    Assert.Equal(((IEnumerable<Level2>)e.OneToMany_Optional).Count(), actualCollection.Count);
+                });
+        }
+
+        [ConditionalFact]
+        public virtual void Project_collection_and_include()
+        {
+            AssertQuery<Level1>(
+                l1s => from l1 in l1s.Include(l => l.OneToMany_Optional)
+                       select new { l1, l1.OneToMany_Optional },
+                elementSorter: e => e.l1.Id,
+                elementAsserter: (e, a) =>
+                    {
+                        Assert.Equal(e.l1.Id, a.l1.Id);
+
+                        var actualCollection = new List<Level2>();
+                        foreach (var actualElement in a.OneToMany_Optional)
+                        {
+                            actualCollection.Add(actualElement);
+                        }
+
+                        Assert.Equal(((IEnumerable<Level2>)e.OneToMany_Optional).Count(), actualCollection.Count);
+                    });
         }
 
         private static TResult Maybe<TResult>(object caller, Func<TResult> expression) where TResult : class

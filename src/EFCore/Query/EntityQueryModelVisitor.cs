@@ -294,9 +294,9 @@ namespace Microsoft.EntityFrameworkCore.Query
                     var navigationMethodInfo = _navigationMethodInfo.MakeGenericMethod(querySource.ItemType, expression.Type);
 
                     var parameter = Expression.Parameter(querySource.ItemType, "prm");
-                    var body = new QsreReplacingExpressionVisitor(querySource, parameter).Visit(expression);
+                    var body = new CollectionNavigationIncludeReplacingExpressionVisitor(querySource, parameter).Visit(expression);
 
-                    var emptyCollection = lastNavigation.GetCollectionAccessor().Create(new object[0]);
+                    var emptyCollection = lastNavigation.GetCollectionAccessor().Create();
 
                     return Expression.Call(
                         navigationMethodInfo,
@@ -310,12 +310,12 @@ namespace Microsoft.EntityFrameworkCore.Query
                 return expression;
             }
 
-            private class QsreReplacingExpressionVisitor : ExpressionVisitorBase
+            private class CollectionNavigationIncludeReplacingExpressionVisitor : ExpressionVisitorBase
             {
                 private readonly IQuerySource _querySource;
                 private readonly Expression _replacementExpression;
 
-                public QsreReplacingExpressionVisitor(IQuerySource querySource, Expression replacementExpression)
+                public CollectionNavigationIncludeReplacingExpressionVisitor(IQuerySource querySource, Expression replacementExpression)
                 {
                     _querySource = querySource;
                     _replacementExpression = replacementExpression;
@@ -357,6 +357,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 = typeof(CollectionNavigationIncludeResultOperatorCreator).GetTypeInfo()
                     .GetDeclaredMethod(nameof(_ProjectCollectionNavigation));
 
+            // ReSharper disable once InconsistentNaming
             private static TResult _ProjectCollectionNavigation<TEntity, TResult>(TEntity entity, Func<TEntity, TResult> accessor)
                 => accessor(entity);
         }

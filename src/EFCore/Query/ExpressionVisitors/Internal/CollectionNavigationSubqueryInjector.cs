@@ -137,11 +137,15 @@ namespace Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal
         }
 
         [UsedImplicitly]
-        private static ICollection<TEntity> MaterializeCollectionNavigation<TEntity>(INavigation navigation, IEnumerable<object> elements)
+        private static ICollection<TEntity> MaterializeCollectionNavigation<TEntity>(INavigation navigation, IEnumerable<TEntity> elements)
         {
-            var collection = navigation.GetCollectionAccessor().Create(elements);
+            var collection = (ICollection<TEntity>)navigation.GetCollectionAccessor().Create();
+            foreach (var element in elements)
+            {
+                collection.Add(element);
+            }
 
-            return (ICollection<TEntity>)collection;
+            return collection;
         }
     }
 }
