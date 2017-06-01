@@ -308,6 +308,18 @@ namespace Microsoft.EntityFrameworkCore
         {
         }
 
+        public override void Project_collection_navigation_using_ef_property()
+        {
+        }
+
+        public override void Project_collection_navigation_composed()
+        {
+        }
+
+        public override void Project_collection_navigation_count()
+        {
+        }
+
         protected override IQueryable<Level1> GetExpectedLevelOne()
             => ComplexNavigationsData.SplitLevelOnes.AsQueryable();
 
