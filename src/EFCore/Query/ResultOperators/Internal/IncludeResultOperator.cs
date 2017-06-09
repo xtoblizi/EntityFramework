@@ -28,6 +28,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ResultOperators.Internal
         private List<string> _navigationPropertyPaths;
         private INavigation[] _navigationPath;
         private IQuerySource _querySource;
+        private Type _sourceEntityType;
 
         /// <summary>
         ///     This API supports the Entity Framework Core infrastructure and is not intended to be used
@@ -35,7 +36,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ResultOperators.Internal
         /// </summary>
         public IncludeResultOperator(
             [NotNull] INavigation[] navigationPath, [NotNull] Expression pathFromQuerySource)
-            : this(navigationPath.Select(n => n.Name), pathFromQuerySource)
+            : this(navigationPath[0].DeclaringType.ClrType, navigationPath.Select(n => n.Name), pathFromQuerySource)
         {
             _navigationPath = navigationPath;
         }
@@ -45,8 +46,11 @@ namespace Microsoft.EntityFrameworkCore.Query.ResultOperators.Internal
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
         public IncludeResultOperator(
-            [NotNull] IEnumerable<string> navigationPropertyPaths, [NotNull] Expression pathFromQuerySource)
+            [NotNull] Type sourceEntityType,
+            [NotNull] IEnumerable<string> navigationPropertyPaths, 
+            [NotNull] Expression pathFromQuerySource)
         {
+            _sourceEntityType = sourceEntityType;
             _navigationPropertyPaths = new List<string>(navigationPropertyPaths);
             PathFromQuerySource = pathFromQuerySource;
         }
@@ -72,6 +76,12 @@ namespace Microsoft.EntityFrameworkCore.Query.ResultOperators.Internal
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
         public virtual QueryModel QueryModel { get; set; }
+
+        /// <summary>
+        ///     This API supports the Entity Framework Core infrastructure and is not intended to be used
+        ///     directly from your code. This API may change or be removed in future releases.
+        /// </summary>
+        public virtual Type SourceEntityType { get; set; }
 
         /// <summary>
         ///     This API supports the Entity Framework Core infrastructure and is not intended to be used
@@ -140,7 +150,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ResultOperators.Internal
 
                 for (var i = 0; i < NavigationPropertyPaths.Count; i++)
                 {
-                    _navigationPath[i] = entityType.FindNavigation(NavigationPropertyPaths[i]);
+                    _navigationPath[i] = FindNavigation(entityType, NavigationPropertyPaths[i]);
 
                     if (_navigationPath[i] == null)
                     {
@@ -153,6 +163,26 @@ namespace Microsoft.EntityFrameworkCore.Query.ResultOperators.Internal
             }
 
             return _navigationPath;
+        }
+
+        private INavigation FindNavigation(IEntityType entityType, string name)
+        {
+            var navigationPath = entityType.FindNavigation(name);
+            if (navigationPath != null)
+            {
+                return navigationPath;
+            }
+
+            foreach (var derived in entityType.GetDirectlyDerivedTypes())
+            {
+                navigationPath = FindNavigation(derived, name);
+                if (navigationPath != null)
+                {
+                    return navigationPath;
+                }
+            }
+
+            return navigationPath;
         }
 
         /// <summary>
@@ -174,7 +204,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ResultOperators.Internal
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
         public override ResultOperatorBase Clone(CloneContext cloneContext)
-            => new IncludeResultOperator(NavigationPropertyPaths, PathFromQuerySource);
+            => new IncludeResultOperator(SourceEntityType, NavigationPropertyPaths, PathFromQuerySource);
 
         /// <summary>
         ///     This API supports the Entity Framework Core infrastructure and is not intended to be used

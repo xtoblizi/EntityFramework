@@ -25,7 +25,7 @@ namespace Microsoft.EntityFrameworkCore.Infrastructure
             var entityType = new EntityType(typeof(object), new Model(new ConventionSet()), ConfigurationSource.Convention);
             var property = new Property("A", typeof(int), null, null, entityType, ConfigurationSource.Convention, ConfigurationSource.Convention);
             var queryModel = new QueryModel(new MainFromClause("A", typeof(object), Expression.Constant("A")), new SelectClause(Expression.Constant("A")));
-            var includeResultOperator = new IncludeResultOperator(new [] { "Foo" }, Expression.Constant("A"));
+            var includeResultOperator = new IncludeResultOperator(typeof(object), new [] { "Foo" }, Expression.Constant("A"));
 
             var fakeFactories = new Dictionary<Type, Func<object>>
             {

@@ -23,10 +23,12 @@ namespace Microsoft.EntityFrameworkCore.Query.ResultOperators.Internal
         /// </summary>
         public static readonly IReadOnlyCollection<MethodInfo> SupportedMethods = new[]
         {
-            EntityFrameworkQueryableExtensions.StringIncludeMethodInfo
+            EntityFrameworkQueryableExtensions.StringIncludeMethodInfo,
+            EntityFrameworkQueryableExtensions.StringIncludeOnDerivedMethodInfo
         };
 
         private readonly ConstantExpression _navigationPropertyPath;
+        private readonly Type _sourceEntityType;
 
         /// <summary>
         ///     This API supports the Entity Framework Core infrastructure and is not intended to be used
@@ -34,10 +36,12 @@ namespace Microsoft.EntityFrameworkCore.Query.ResultOperators.Internal
         /// </summary>
         public StringIncludeExpressionNode(
             MethodCallExpressionParseInfo parseInfo,
+            ConstantExpression sourceEntityType,
             [NotNull] ConstantExpression navigationPropertyPath)
             : base(parseInfo, null, null)
         {
             _navigationPropertyPath = navigationPropertyPath;
+            _sourceEntityType = (Type)sourceEntityType.Value;
         }
 
         /// <summary>
@@ -51,6 +55,7 @@ namespace Microsoft.EntityFrameworkCore.Query.ResultOperators.Internal
             var navigationPropertyPathValue = (string)_navigationPropertyPath.Value;
 
             return new IncludeResultOperator(
+                _sourceEntityType,
                 navigationPropertyPathValue.Split(new[] { "." }, StringSplitOptions.RemoveEmptyEntries),
                 pathFromQuerySource);
         }
