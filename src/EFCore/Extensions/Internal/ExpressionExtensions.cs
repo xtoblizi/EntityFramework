@@ -20,7 +20,7 @@ namespace Microsoft.EntityFrameworkCore.Internal
     ///     This API supports the Entity Framework Core infrastructure and is not intended to be used
     ///     directly from your code. This API may change or be removed in future releases.
     /// </summary>
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     public static class ExpressionExtensions
     {
         /// <summary>
@@ -162,31 +162,38 @@ namespace Microsoft.EntityFrameworkCore.Internal
             return propertyPath;
         }
 
+
         private static IReadOnlyList<PropertyInfo> MatchPropertyAccess(
             this Expression parameterExpression, Expression propertyAccessExpression)
         {
             var propertyInfos = new List<PropertyInfo>();
 
-            MemberExpression memberExpression;
-
-            do
+            var expression = propertyAccessExpression;
+            while (expression != null)
             {
-                memberExpression = RemoveConvert(propertyAccessExpression) as MemberExpression;
+                expression = expression.RemoveConvert();
+                if (expression == parameterExpression)
+                {
+                    return propertyInfos;
+                }
 
-                var propertyInfo = memberExpression?.Member as PropertyInfo;
-
-                if (propertyInfo == null)
+                if (expression.NodeType == ExpressionType.TypeAs
+                    && expression is UnaryExpression convertExpression)
+                {
+                    expression = convertExpression.Operand;
+                }
+                else if (expression is MemberExpression memberExpression)
+                {
+                    propertyInfos.Add(memberExpression.Member as PropertyInfo);
+                    expression = memberExpression.Expression;
+                }
+                else
                 {
                     return null;
                 }
-
-                propertyInfos.Insert(0, propertyInfo);
-
-                propertyAccessExpression = memberExpression.Expression;
             }
-            while (memberExpression.Expression.RemoveConvert() != parameterExpression);
 
-            return propertyInfos;
+            return null;
         }
 
         /// <summary>

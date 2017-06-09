@@ -140,19 +140,41 @@ namespace Microsoft.EntityFrameworkCore.Query.ResultOperators.Internal
 
                 for (var i = 0; i < NavigationPropertyPaths.Count; i++)
                 {
-                    _navigationPath[i] = entityType.FindNavigation(NavigationPropertyPaths[i]);
-
-                    if (_navigationPath[i] == null)
+                    //_navigationPath[i] = entityType.FindNavigation(NavigationPropertyPaths[i]);
+                    var navigationPath = FindNavigation(entityType, NavigationPropertyPaths[i]);
+                    if (navigationPath == null)
+                    //if (_navigationPath[i] == null)
                     {
                         throw new InvalidOperationException(
                             CoreStrings.IncludeBadNavigation(NavigationPropertyPaths[i], entityType.DisplayName()));
                     }
 
+                    _navigationPath[i] = navigationPath;
                     entityType = _navigationPath[i].GetTargetType();
                 }
             }
 
             return _navigationPath;
+        }
+
+        private INavigation FindNavigation(IEntityType entityType, string name)
+        {
+            var navigationPath = entityType.FindNavigation(name);
+            if (navigationPath != null)
+            {
+                return navigationPath;
+            }
+
+            foreach (var derived in entityType.GetDirectlyDerivedTypes())
+            {
+                navigationPath = FindNavigation(derived, name);
+                if (navigationPath != null)
+                {
+                    return navigationPath;
+                }
+            }
+
+            return navigationPath;
         }
 
         /// <summary>

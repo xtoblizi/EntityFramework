@@ -3607,6 +3607,123 @@ FROM [Gear] AS [g]
 WHERE [g].[Discriminator] IN (N'Officer', N'Gear') AND ((@_outer_Nickname = [g].[LeaderNickname]) AND (@_outer_SquadId = [g].[LeaderSquadId]))");
         }
 
+        public override void Include_reference_on_derived_type_using_string()
+        {
+            base.Include_reference_on_derived_type_using_string();
+
+            AssertSql(
+                @"SELECT [l].[Name], [l].[Discriminator], [l].[LocustHordeId], [l].[ThreatLevel], [l].[DefeatedByNickname], [l].[DefeatedBySquadId], [t].[Nickname], [t].[SquadId], [t].[AssignedCityName], [t].[CityOrBirthName], [t].[Discriminator], [t].[FullName], [t].[HasSoulPatch], [t].[LeaderNickname], [t].[LeaderSquadId], [t].[Rank]
+FROM [LocustLeader] AS [l]
+LEFT JOIN (
+    SELECT [l.DefeatedBy].*
+    FROM [Gear] AS [l.DefeatedBy]
+    WHERE [l.DefeatedBy].[Discriminator] IN (N'Officer', N'Gear')
+) AS [t] ON ([l].[DefeatedByNickname] = [t].[Nickname]) AND ([l].[DefeatedBySquadId] = [t].[SquadId])
+WHERE [l].[Discriminator] IN (N'LocustCommander', N'LocustLeader')");
+        }
+
+        public override void Include_reference_on_derived_type_using_lambda()
+        {
+            base.Include_reference_on_derived_type_using_lambda();
+
+            AssertSql(
+                @"SELECT [l].[Name], [l].[Discriminator], [l].[LocustHordeId], [l].[ThreatLevel], [l].[DefeatedByNickname], [l].[DefeatedBySquadId], [t].[Nickname], [t].[SquadId], [t].[AssignedCityName], [t].[CityOrBirthName], [t].[Discriminator], [t].[FullName], [t].[HasSoulPatch], [t].[LeaderNickname], [t].[LeaderSquadId], [t].[Rank]
+FROM [LocustLeader] AS [l]
+LEFT JOIN (
+    SELECT [l.DefeatedBy].*
+    FROM [Gear] AS [l.DefeatedBy]
+    WHERE [l.DefeatedBy].[Discriminator] IN (N'Officer', N'Gear')
+) AS [t] ON ([l].[DefeatedByNickname] = [t].[Nickname]) AND ([l].[DefeatedBySquadId] = [t].[SquadId])
+WHERE [l].[Discriminator] IN (N'LocustCommander', N'LocustLeader')");
+        }
+
+        public override void Include_reference_on_derived_type_using_lambda_with_tracking()
+        {
+            base.Include_reference_on_derived_type_using_lambda_with_tracking();
+
+            AssertSql(
+                @"SELECT [l].[Name], [l].[Discriminator], [l].[LocustHordeId], [l].[ThreatLevel], [l].[DefeatedByNickname], [l].[DefeatedBySquadId], [t].[Nickname], [t].[SquadId], [t].[AssignedCityName], [t].[CityOrBirthName], [t].[Discriminator], [t].[FullName], [t].[HasSoulPatch], [t].[LeaderNickname], [t].[LeaderSquadId], [t].[Rank]
+FROM [LocustLeader] AS [l]
+LEFT JOIN (
+    SELECT [l.DefeatedBy].*
+    FROM [Gear] AS [l.DefeatedBy]
+    WHERE [l.DefeatedBy].[Discriminator] IN (N'Officer', N'Gear')
+) AS [t] ON ([l].[DefeatedByNickname] = [t].[Nickname]) AND ([l].[DefeatedBySquadId] = [t].[SquadId])
+WHERE [l].[Discriminator] IN (N'LocustCommander', N'LocustLeader')");
+        }
+
+        public override void Include_collection_on_derived_type_using_string()
+        {
+            base.Include_collection_on_derived_type_using_string();
+
+            AssertSql(
+                @"SELECT [g].[Nickname], [g].[SquadId], [g].[AssignedCityName], [g].[CityOrBirthName], [g].[Discriminator], [g].[FullName], [g].[HasSoulPatch], [g].[LeaderNickname], [g].[LeaderSquadId], [g].[Rank]
+FROM [Gear] AS [g]
+WHERE [g].[Discriminator] IN (N'Officer', N'Gear')
+ORDER BY [g].[Nickname], [g].[SquadId]",
+                //
+                @"SELECT [o.Reports].[Nickname], [o.Reports].[SquadId], [o.Reports].[AssignedCityName], [o.Reports].[CityOrBirthName], [o.Reports].[Discriminator], [o.Reports].[FullName], [o.Reports].[HasSoulPatch], [o.Reports].[LeaderNickname], [o.Reports].[LeaderSquadId], [o.Reports].[Rank]
+FROM [Gear] AS [o.Reports]
+INNER JOIN (
+    SELECT [g0].[Nickname], [g0].[SquadId]
+    FROM [Gear] AS [g0]
+    WHERE [g0].[Discriminator] IN (N'Officer', N'Gear')
+) AS [t] ON ([o.Reports].[LeaderNickname] = [t].[Nickname]) AND ([o.Reports].[LeaderSquadId] = [t].[SquadId])
+WHERE [o.Reports].[Discriminator] IN (N'Officer', N'Gear')
+ORDER BY [t].[Nickname], [t].[SquadId]");
+        }
+
+        public override void Include_collection_on_derived_type_using_lambda()
+        {
+            base.Include_collection_on_derived_type_using_lambda();
+
+            AssertSql(
+                @"SELECT [g].[Nickname], [g].[SquadId], [g].[AssignedCityName], [g].[CityOrBirthName], [g].[Discriminator], [g].[FullName], [g].[HasSoulPatch], [g].[LeaderNickname], [g].[LeaderSquadId], [g].[Rank]
+FROM [Gear] AS [g]
+WHERE [g].[Discriminator] IN (N'Officer', N'Gear')
+ORDER BY [g].[Nickname], [g].[SquadId]",
+                //
+                @"SELECT [o.Reports].[Nickname], [o.Reports].[SquadId], [o.Reports].[AssignedCityName], [o.Reports].[CityOrBirthName], [o.Reports].[Discriminator], [o.Reports].[FullName], [o.Reports].[HasSoulPatch], [o.Reports].[LeaderNickname], [o.Reports].[LeaderSquadId], [o.Reports].[Rank]
+FROM [Gear] AS [o.Reports]
+INNER JOIN (
+    SELECT [g0].[Nickname], [g0].[SquadId]
+    FROM [Gear] AS [g0]
+    WHERE [g0].[Discriminator] IN (N'Officer', N'Gear')
+) AS [t] ON ([o.Reports].[LeaderNickname] = [t].[Nickname]) AND ([o.Reports].[LeaderSquadId] = [t].[SquadId])
+WHERE [o.Reports].[Discriminator] IN (N'Officer', N'Gear')
+ORDER BY [t].[Nickname], [t].[SquadId]");
+        }
+
+        public override void Include_base_navigation_on_derived_entity()
+        {
+            base.Include_base_navigation_on_derived_entity();
+
+            AssertSql(
+                @"SELECT [g].[Nickname], [g].[SquadId], [g].[AssignedCityName], [g].[CityOrBirthName], [g].[Discriminator], [g].[FullName], [g].[HasSoulPatch], [g].[LeaderNickname], [g].[LeaderSquadId], [g].[Rank], [g.Tag].[Id], [g.Tag].[GearNickName], [g.Tag].[GearSquadId], [g.Tag].[Note]
+FROM [Gear] AS [g]
+LEFT JOIN [CogTag] AS [g.Tag] ON ([g].[Nickname] = [g.Tag].[GearNickName]) AND ([g].[SquadId] = [g.Tag].[GearSquadId])
+WHERE [g].[Discriminator] IN (N'Officer', N'Gear')
+ORDER BY [g].[FullName]",
+                //
+                @"SELECT [g.Weapons].[Id], [g.Weapons].[AmmunitionType], [g.Weapons].[IsAutomatic], [g.Weapons].[Name], [g.Weapons].[OwnerFullName], [g.Weapons].[SynergyWithId]
+FROM [Weapon] AS [g.Weapons]
+INNER JOIN (
+    SELECT DISTINCT [g0].[FullName]
+    FROM [Gear] AS [g0]
+    LEFT JOIN [CogTag] AS [g.Tag0] ON ([g0].[Nickname] = [g.Tag0].[GearNickName]) AND ([g0].[SquadId] = [g.Tag0].[GearSquadId])
+    WHERE [g0].[Discriminator] IN (N'Officer', N'Gear')
+) AS [t] ON [g.Weapons].[OwnerFullName] = [t].[FullName]
+ORDER BY [t].[FullName]");
+        }
+
+        public override void Include_on_derived_multi_level()
+        {
+            base.Include_on_derived_multi_level();
+
+            AssertSql(
+                @"");
+        }
+
         private void AssertSql(params string[] expected)
             => Fixture.TestSqlLoggerFactory.AssertBaseline(expected);
 

@@ -178,12 +178,38 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                     arguments.Add(cancellationTokenExpression);
                 }
 
-                return Expression.Call(
-                    Expression.Property(
-                        EntityQueryModelVisitor.QueryContextParameter,
-                        nameof(QueryContext.QueryBuffer)),
-                    includeCollectionMethodInfo,
-                    arguments);
+                var includeCollectionMethodCall =
+                    Expression.Call(
+                        Expression.Property(
+                            EntityQueryModelVisitor.QueryContextParameter,
+                            nameof(QueryContext.QueryBuffer)),
+                        includeCollectionMethodInfo,
+                        arguments);
+
+                return 
+                    navigation.DeclaringType is EntityType entityType
+                        && entityType.BaseType == null
+                    ? (Expression)includeCollectionMethodCall
+                    : Expression.Condition(
+                        Expression.TypeIs(
+                            targetEntityExpression,
+                            navigation.DeclaringType.ClrType),
+                        includeCollectionMethodCall,
+                        Expression.Default(includeCollectionMethodInfo.ReturnType));
+
+
+                //if (navigation.DeclaringType is EntityType entityType
+                //    && entityType.BaseType == null)
+                //{
+
+                //}
+
+                //return Expression.Condition(
+                //    Expression.TypeIs(
+                //        targetEntityExpression,
+                //        navigation.DeclaringType.ClrType),
+                //    includeCollectionMethodCall,
+                //    Expression.Default(includeCollectionMethodInfo.ReturnType));
             }
 
             private Expression CompileReferenceInclude(
