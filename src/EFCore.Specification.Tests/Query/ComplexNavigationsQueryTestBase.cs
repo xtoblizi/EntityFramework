@@ -23,6 +23,8 @@ namespace Microsoft.EntityFrameworkCore.Query
     {
         protected ComplexNavigationsContext CreateContext() => Fixture.CreateContext(TestStore);
 
+        private QueryTestHelpers<ComplexNavigationsContext, ComplexNavigationsData2> _queryTestHelpers;
+
         protected ComplexNavigationsQueryTestBase(TFixture fixture)
         {
             Fixture = fixture;
@@ -30,6 +32,8 @@ namespace Microsoft.EntityFrameworkCore.Query
             TestStore = Fixture.CreateTestStore();
 
             ResultAsserter = new ComplexNavigationsQueryResultAsserter();
+
+            _queryTestHelpers = new QueryTestHelpers<ComplexNavigationsContext, ComplexNavigationsData2>(CreateContext, new ComplexNavigationsData2());
         }
 
         protected TFixture Fixture { get; }
@@ -43,7 +47,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Entity_equality_empty()
         {
-            AssertQuery<Level1>(
+            _queryTestHelpers.AssertQuery<Level1>(
                 l1s => l1s.Where(l => l.OneToOne_Optional_FK == new Level2()),
                 e => e.Id,
                 (e, a) => Assert.Equal(e.Id, a.Id));
@@ -52,7 +56,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Key_equality_when_sentinel_ef_property()
         {
-            AssertQuery<Level1>(
+            _queryTestHelpers.AssertQuery<Level1>(
                 l1s => l1s.Where(l => EF.Property<int>(l.OneToOne_Optional_FK, "Id") == 0),
                 l1s => l1s.Where(l => MaybeScalar<int>(l.OneToOne_Optional_FK, () => l.OneToOne_Optional_FK.Id) == 0),
                 e => e.Id,
@@ -72,7 +76,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Key_equality_using_property_method_required2()
         {
-            AssertQuery<Level2>(
+            _queryTestHelpers.AssertQuery<Level2>(
                 l2s => l2s.Where(l => EF.Property<int>(l.OneToOne_Required_FK_Inverse, "Id") > 7),
                 l2s => l2s.Where(l => l.OneToOne_Required_FK_Inverse.Id > 7),
                 e => e.Id,
@@ -82,7 +86,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Key_equality_using_property_method_nested()
         {
-            AssertQuery<Level1>(
+            _queryTestHelpers.AssertQuery<Level1>(
                 l1s => l1s.Where(l => EF.Property<int>(EF.Property<Level2>(l, "OneToOne_Required_FK"), "Id") == 7),
                 l1s => l1s.Where(l => MaybeScalar<int>(l.OneToOne_Required_FK, () => l.OneToOne_Required_FK.Id) == 7),
                 e => e.Id,
@@ -102,7 +106,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Key_equality_using_property_method_and_member_expression1()
         {
-            AssertQuery<Level1>(
+            _queryTestHelpers.AssertQuery<Level1>(
                 l1s => l1s.Where(l => EF.Property<Level2>(l, "OneToOne_Required_FK").Id == 7),
                 l1s => l1s.Where(l => MaybeScalar<int>(l.OneToOne_Required_FK, () => l.OneToOne_Required_FK.Id) == 7),
                 e => e.Id,
@@ -112,7 +116,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Key_equality_using_property_method_and_member_expression2()
         {
-            AssertQuery<Level1>(
+            _queryTestHelpers.AssertQuery<Level1>(
                   l1s => l1s.Where(l => EF.Property<int>(l.OneToOne_Required_FK, "Id") == 7),
                   l1s => l1s.Where(l => MaybeScalar<int>(l.OneToOne_Required_FK, () => l.OneToOne_Required_FK.Id) == 7),
                   e => e.Id,
@@ -122,7 +126,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Key_equality_using_property_method_and_member_expression3()
         {
-            AssertQuery<Level2>(
+            _queryTestHelpers.AssertQuery<Level2>(
                   l2s => l2s.Where(l => EF.Property<int>(l.OneToOne_Required_FK_Inverse, "Id") == 7),
                   l2s => l2s.Where(l => l.OneToOne_Required_FK_Inverse.Id == 7),
                   e => e.Id,
@@ -132,7 +136,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Key_equality_navigation_converted_to_FK()
         {
-            AssertQuery<Level2>(
+            _queryTestHelpers.AssertQuery<Level2>(
                   l2s => l2s.Where(l => l.OneToOne_Required_FK_Inverse == new Level1 { Id = 1 }),
                   l2s => l2s.Where(l => l.OneToOne_Required_FK_Inverse.Id == 1),
                   e => e.Id,
@@ -142,7 +146,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Key_equality_two_conditions_on_same_navigation()
         {
-            AssertQuery<Level1>(
+            _queryTestHelpers.AssertQuery<Level1>(
                   l1s => l1s.Where(l => l.OneToOne_Required_FK == new Level2 { Id = 1 }
                       || l.OneToOne_Required_FK == new Level2 { Id = 2 }),
                   l1s => l1s.Where(l => MaybeScalar<int>(l.OneToOne_Required_FK, () => l.OneToOne_Required_FK.Id) == 1
@@ -154,7 +158,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Key_equality_two_conditions_on_same_navigation2()
         {
-            AssertQuery<Level2>(
+            _queryTestHelpers.AssertQuery<Level2>(
                   l2s => l2s.Where(l => l.OneToOne_Required_FK_Inverse == new Level1 { Id = 1 }
                       || l.OneToOne_Required_FK_Inverse == new Level1 { Id = 2 }),
                   l2s => l2s.Where(l => l.OneToOne_Required_FK_Inverse.Id == 1
