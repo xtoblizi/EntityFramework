@@ -371,6 +371,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             AssertQuery<Employee>(
                 es => es.Where(e => EF.Property<string>(e, "Title") == "Sales Representative")
                     .Select(e => new { e, Title = EF.Property<string>(e, "Title") }),
+                e => e.e.EmployeeID,
                 entryCount: 6);
         }
 
@@ -611,8 +612,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         public virtual void Where_date_add_year_constant_component()
         {
             AssertQuery<Order>(
-                oc => oc.Where(o =>
-                    o.OrderDate.Value.AddYears(-1).Year == 1997),
+                oc => oc.Where(o => o.OrderDate.Value.AddYears(-1).Year == 1997),
                 entryCount: 270);
         }
 
@@ -620,8 +620,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         public virtual void Where_datetime_year_component()
         {
             AssertQuery<Order>(
-                oc => oc.Where(o =>
-                    o.OrderDate.Value.Year == 1998),
+                oc => oc.Where(o => o.OrderDate.Value.Year == 1998),
                 entryCount: 270);
         }
 
@@ -629,8 +628,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         public virtual void Where_datetime_month_component()
         {
             AssertQuery<Order>(
-                oc => oc.Where(o =>
-                    o.OrderDate.Value.Month == 4),
+                oc => oc.Where(o => o.OrderDate.Value.Month == 4),
                 entryCount: 105);
         }
 
@@ -638,8 +636,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         public virtual void Where_datetime_dayOfYear_component()
         {
             AssertQuery<Order>(
-                oc => oc.Where(o =>
-                    o.OrderDate.Value.DayOfYear == 68),
+                oc => oc.Where(o => o.OrderDate.Value.DayOfYear == 68),
                 entryCount: 3);
         }
 
@@ -647,8 +644,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         public virtual void Where_datetime_day_component()
         {
             AssertQuery<Order>(
-                oc => oc.Where(o =>
-                    o.OrderDate.Value.Day == 4),
+                oc => oc.Where(o => o.OrderDate.Value.Day == 4),
                 entryCount: 27);
         }
 
@@ -656,36 +652,28 @@ namespace Microsoft.EntityFrameworkCore.Query
         public virtual void Where_datetime_hour_component()
         {
             AssertQuery<Order>(
-                oc => oc.Where(o =>
-                    o.OrderDate.Value.Hour == 14),
-                entryCount: 0);
+                oc => oc.Where(o => o.OrderDate.Value.Hour == 14));
         }
 
         [ConditionalFact]
         public virtual void Where_datetime_minute_component()
         {
             AssertQuery<Order>(
-                oc => oc.Where(o =>
-                    o.OrderDate.Value.Minute == 23),
-                entryCount: 0);
+                oc => oc.Where(o => o.OrderDate.Value.Minute == 23));
         }
 
         [ConditionalFact]
         public virtual void Where_datetime_second_component()
         {
             AssertQuery<Order>(
-                oc => oc.Where(o =>
-                    o.OrderDate.Value.Second == 44),
-                entryCount: 0);
+                oc => oc.Where(o => o.OrderDate.Value.Second == 44));
         }
 
         [ConditionalFact]
         public virtual void Where_datetime_millisecond_component()
         {
             AssertQuery<Order>(
-                oc => oc.Where(o =>
-                    o.OrderDate.Value.Millisecond == 88),
-                entryCount: 0);
+                oc => oc.Where(o => o.OrderDate.Value.Millisecond == 88));
         }
 
         [ConditionalFact]
@@ -755,36 +743,42 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Where_in_optimization_multiple()
         {
-            AssertQuery<Customer, Employee>((cs, es) =>
-                from c in cs
-                from e in es
-                where c.City == "London"
-                      || c.City == "Berlin"
-                      || c.CustomerID == "ALFKI"
-                      || c.CustomerID == "ABCDE"
-                select new { c, e });
+            AssertQuery<Customer, Employee>(
+                (cs, es) =>
+                    from c in cs
+                    from e in es
+                    where c.City == "London"
+                          || c.City == "Berlin"
+                          || c.CustomerID == "ALFKI"
+                          || c.CustomerID == "ABCDE"
+                    select new { c, e },
+                e => e.c.CustomerID + " " + e.e.EmployeeID);
         }
 
         [ConditionalFact]
         public virtual void Where_not_in_optimization1()
         {
-            AssertQuery<Customer, Employee>((cs, es) =>
-                from c in cs
-                from e in es
-                where c.City != "London"
-                      && e.City != "London"
-                select new { c, e });
+            AssertQuery<Customer, Employee>(
+                (cs, es) =>
+                    from c in cs
+                    from e in es
+                    where c.City != "London"
+                          && e.City != "London"
+                    select new { c, e },
+                e => e.c.CustomerID + " " + e.e.EmployeeID);
         }
 
         [ConditionalFact]
         public virtual void Where_not_in_optimization2()
         {
-            AssertQuery<Customer, Employee>((cs, es) =>
+            AssertQuery<Customer, Employee>(
+                (cs, es) =>
                 from c in cs
                 from e in es
                 where c.City != "London"
                       && c.City != "Berlin"
-                select new { c, e });
+                select new { c, e },
+                e => e.c.CustomerID + " " + e.e.EmployeeID);
         }
 
         [ConditionalFact]
@@ -796,7 +790,8 @@ namespace Microsoft.EntityFrameworkCore.Query
                 where c.City != "London"
                       && c.City != "Berlin"
                       && c.City != "Seattle"
-                select new { c, e });
+                select new { c, e },
+                e => e.c.CustomerID + " " + e.e.EmployeeID);
         }
 
         [ConditionalFact]
@@ -809,7 +804,8 @@ namespace Microsoft.EntityFrameworkCore.Query
                       && c.City != "Berlin"
                       && c.City != "Seattle"
                       && c.City != "Lisboa"
-                select new { c, e });
+                select new { c, e },
+                e => e.c.CustomerID + " " + e.e.EmployeeID);
         }
 
         [ConditionalFact]
@@ -821,13 +817,14 @@ namespace Microsoft.EntityFrameworkCore.Query
                 // ReSharper disable ArrangeRedundantParentheses
                 where (c.City == "London" && c.Country == "UK")
                       && (e.City == "London" && e.Country == "UK")
-                select new { c, e });
+                select new { c, e },
+                e => e.c.CustomerID + " " + e.e.EmployeeID);
         }
 
         [ConditionalFact]
         public virtual void Where_primitive()
         {
-            AssertQuery<Employee>(
+            AssertQueryScalar<Employee, int>(
                 es => es.Select(e => e.EmployeeID).Take(9).Where(i => i == 5));
         }
 
@@ -844,6 +841,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         {
             AssertQuery<Employee>(
                 es => es.Take(9).Select(e => new { e }).Where(e => e.e.EmployeeID == 5),
+                e => e.e.EmployeeID,
                 entryCount: 1);
         }
 

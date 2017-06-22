@@ -980,7 +980,7 @@ FROM (
 
         public void Skip_when_no_OrderBy()
         {
-            Assert.Throws<Exception>(() => AssertQuery<Customer>(cs => cs.Skip(5).Take(10)));
+            Assert.Throws<Exception>(() => CreateContext().Set<Customer>().Skip(5).Take(10).ToList());
         }
 
         public override void Take_Distinct_Count()
@@ -2226,6 +2226,11 @@ WHERE [o].[CustomerID] = @_outer_CustomerID",
 SELECT [o].[OrderID], [o].[CustomerID], [o].[EmployeeID], [o].[OrderDate]
 FROM [Orders] AS [o]
 WHERE [o].[CustomerID] = @_outer_CustomerID");
+        }
+
+        public override void Select_correlated_subquery_filtered()
+        {
+            base.Select_correlated_subquery_filtered();
         }
 
         public override void Select_correlated_subquery_ordered()

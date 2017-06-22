@@ -30,7 +30,8 @@ namespace Microsoft.EntityFrameworkCore.Query
         public virtual void Projection_when_arithmetic_expression_precendence()
         {
             AssertQuery<Order>(
-                os => os.Select(o => new { A = o.OrderID / (o.OrderID / 2), B = o.OrderID / o.OrderID / 2 }));
+                os => os.Select(o => new { A = o.OrderID / (o.OrderID / 2), B = o.OrderID / o.OrderID / 2 }),
+                e => e.A + " " + e.B);
         }
 
         [ConditionalFact]
@@ -46,8 +47,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             AssertQuery<Employee>(
                 es => es.Where(e => e.EmployeeID == 1)
                     .Select(e => new object[] { e.EmployeeID, e.ReportsTo, EF.Property<string>(e, "Title") }),
-                entryCount: 0,
-                asserter: (e, a) => AssertArrays<object>(e, a, 3));
+                elementAsserter: (e, a) => AssertArrays<object>(e, a, 3));
         }
 
         [ConditionalFact]
@@ -56,17 +56,13 @@ namespace Microsoft.EntityFrameworkCore.Query
             AssertQuery<Employee>(
                 es => es.Where(e => e.EmployeeID == 1)
                     .Select(e => new[] { e.EmployeeID, e.ReportsTo }),
-                entryCount: 0,
-                asserter: (e, a) => AssertArrays<int?>(e, a, 2));
+                elementAsserter: (e, a) => AssertArrays<int?>(e, a, 2));
         }
 
-        private static void AssertArrays<T>(IList<object> e, IList<object> a, int count)
+        private static void AssertArrays<T>(object e, object a, int count)
         {
-            Assert.Equal(1, e.Count);
-            Assert.Equal(1, a.Count);
-
-            var expectedArray = (T[])e[0];
-            var actualArray = (T[])a[0];
+            var expectedArray = (T[])e;
+            var actualArray = (T[])a;
 
             Assert.Equal(count, expectedArray.Length);
             Assert.Equal(count, actualArray.Length);
@@ -84,12 +80,14 @@ namespace Microsoft.EntityFrameworkCore.Query
             var boolean = false;
 
             AssertQuery<Customer>(
-                cs => cs.Select(c => new { f = boolean }));
+                cs => cs.Select(c => new { f = boolean }),
+                e => e.f);
 
             boolean = true;
 
             AssertQuery<Customer>(
-                cs => cs.Select(c => new { f = boolean }));
+                cs => cs.Select(c => new { f = boolean }),
+                e => e.f);
         }
 
         [ConditionalFact]
@@ -103,42 +101,48 @@ namespace Microsoft.EntityFrameworkCore.Query
         public virtual void Select_anonymous_one()
         {
             AssertQuery<Customer>(
-                cs => cs.Select(c => new { c.City }));
+                cs => cs.Select(c => new { c.City }),
+                e => e.City);
         }
 
         [ConditionalFact]
         public virtual void Select_anonymous_two()
         {
             AssertQuery<Customer>(
-                cs => cs.Select(c => new { c.City, c.Phone }));
+                cs => cs.Select(c => new { c.City, c.Phone }),
+                e => e.Phone);
         }
 
         [ConditionalFact]
         public virtual void Select_anonymous_three()
         {
             AssertQuery<Customer>(
-                cs => cs.Select(c => new { c.City, c.Phone, c.Country }));
+                cs => cs.Select(c => new { c.City, c.Phone, c.Country }),
+                e => e.Phone);
         }
 
         [ConditionalFact]
         public virtual void Select_anonymous_bool_constant_true()
         {
             AssertQuery<Customer>(
-                cs => cs.Select(c => new { c.CustomerID, ConstantTrue = true }));
+                cs => cs.Select(c => new { c.CustomerID, ConstantTrue = true }),
+                e => e.CustomerID);
         }
 
         [ConditionalFact]
         public virtual void Select_anonymous_constant_in_expression()
         {
             AssertQuery<Customer>(
-                cs => cs.Select(c => new { c.CustomerID, Expression = c.CustomerID.Length + 5 }));
+                cs => cs.Select(c => new { c.CustomerID, Expression = c.CustomerID.Length + 5 }),
+                e => e.CustomerID);
         }
 
         [ConditionalFact]
         public virtual void Select_anonymous_conditional_expression()
         {
             AssertQuery<Product>(
-                ps => ps.Select(p => new { p.ProductID, IsAvailable = p.UnitsInStock > 0 }));
+                ps => ps.Select(p => new { p.ProductID, IsAvailable = p.UnitsInStock > 0 }),
+                e => e.ProductID);
         }
 
         [ConditionalFact]
@@ -162,6 +166,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         {
             AssertQuery<Customer>(
                 cs => cs.Select(c => new { c.City, c }),
+                e => e.c.CustomerID,
                 entryCount: 91);
         }
 
@@ -169,26 +174,30 @@ namespace Microsoft.EntityFrameworkCore.Query
         public virtual void Select_anonymous_nested()
         {
             AssertQuery<Customer>(
-                cs => cs.Select(c => new { c.City, Country = new { c.Country } }));
+                cs => cs.Select(c => new { c.City, Country = new { c.Country } }),
+                e => e.City);
         }
 
         [ConditionalFact]
         public virtual void Select_anonymous_empty()
         {
             AssertQuery<Customer>(
-                cs => cs.Select(c => new { }));
+                cs => cs.Select(c => new { }),
+                e => 1);
         }
 
         [ConditionalFact]
         public virtual void Select_anonymous_literal()
         {
-            AssertQuery<Customer>(cs => cs.Select(c => new { X = 10 }));
+            AssertQuery<Customer>(
+                cs => cs.Select(c => new { X = 10 }),
+                e => e.X);
         }
 
         [ConditionalFact]
         public virtual void Select_constant_int()
         {
-            AssertQuery<Customer>(cs => cs.Select(c => 0));
+            AssertQueryScalar<Customer, int>(cs => cs.Select(c => 0));
         }
 
         [ConditionalFact]
@@ -203,20 +212,20 @@ namespace Microsoft.EntityFrameworkCore.Query
             // ReSharper disable once ConvertToConstant.Local
             var x = 10;
 
-            AssertQuery<Customer>(cs => cs.Select(c => x));
+            AssertQueryScalar<Customer, int>(cs => cs.Select(c => x));
         }
 
         [ConditionalFact]
         public virtual void Select_scalar_primitive()
         {
-            AssertQuery<Employee>(
+            AssertQueryScalar<Employee, int>(
                 es => es.Select(e => e.EmployeeID));
         }
 
         [ConditionalFact]
         public virtual void Select_scalar_primitive_after_take()
         {
-            AssertQuery<Employee>(
+            AssertQueryScalar<Employee, int>(
                 es => es.Take(9).Select(e => e.EmployeeID));
         }
 
@@ -243,7 +252,8 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Select_nested_collection()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
                     from c in cs
                     where c.City == "London"
                     orderby c.CustomerID
@@ -252,19 +262,21 @@ namespace Microsoft.EntityFrameworkCore.Query
                                     && o.OrderDate.Value.Year == 1997)
                         .Select(o => o.OrderID)
                         .OrderBy(o => o),
-                asserter:
-                (l2oResults, efResults) =>
-                    {
-                        var l2oObjects
-                            = l2oResults
-                                .SelectMany(q1 => (IEnumerable<int>)q1);
+                e => ((IEnumerable<int>)e).Count(),
+                elementAsserter: (e, a) => throw new InvalidOperationException("dupa"));
+        //asserter:
+        //        (l2oResults, efResults) =>
+        //            {
+        //                var l2oObjects
+        //                    = l2oResults
+        //                        .SelectMany(q1 => (IEnumerable<int>)q1);
 
-                        var efObjects
-                            = efResults
-                                .SelectMany(q1 => (IEnumerable<int>)q1);
+        //                var efObjects
+        //                    = efResults
+        //                        .SelectMany(q1 => (IEnumerable<int>)q1);
 
-                        Assert.Equal(l2oObjects, efObjects);
-                    });
+        //                Assert.Equal(l2oObjects, efObjects);
+        //            });
         }
 
         [ConditionalFact]
@@ -433,18 +445,19 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Select_nested_collection_count_using_anonymous_type()
         {
-            AssertQuery<Customer>(cs => cs
-                .Where(c => c.CustomerID.StartsWith("A"))
-                .Select(c => new { c.Orders.Count }));
+            AssertQuery<Customer>(
+                cs => cs.Where(c => c.CustomerID.StartsWith("A"))
+                        .Select(c => new { c.Orders.Count }),
+                e => e.Count);
         }
 
         [ConditionalFact]
         public virtual void Select_nested_collection_count_using_DTO()
         {
             AssertQuery<Customer>(
-                cs => cs
-                    .Where(c => c.CustomerID.StartsWith("A"))
-                    .Select(c => new OrderCountDTO { Id = c.CustomerID, Count = c.Orders.Count }));
+                cs => cs.Where(c => c.CustomerID.StartsWith("A"))
+                        .Select(c => new OrderCountDTO { Id = c.CustomerID, Count = c.Orders.Count }),
+                e => e.Id);
         }
 
         [ConditionalFact]
@@ -462,21 +475,22 @@ namespace Microsoft.EntityFrameworkCore.Query
                                     where o1.CustomerID == c.CustomerID
                                     orderby o2.OrderID
                                     select o1.OrderID)),
-                asserter:
-                (l2oResults, efResults) =>
-                    {
-                        var l2oObjects
-                            = l2oResults
-                                .SelectMany(q1 => ((IEnumerable<object>)q1)
-                                    .SelectMany(q2 => (IEnumerable<int>)q2));
+                elementAsserter: (e, a) => throw new InvalidOperationException("dupa"));
+        //asserter:
+        //        (l2oResults, efResults) =>
+        //            {
+        //                var l2oObjects
+        //                    = l2oResults
+        //                        .SelectMany(q1 => ((IEnumerable<object>)q1)
+        //                            .SelectMany(q2 => (IEnumerable<int>)q2));
 
-                        var efObjects
-                            = efResults
-                                .SelectMany(q1 => ((IEnumerable<object>)q1)
-                                    .SelectMany(q2 => (IEnumerable<int>)q2));
+        //                var efObjects
+        //                    = efResults
+        //                        .SelectMany(q1 => ((IEnumerable<object>)q1)
+        //                            .SelectMany(q2 => (IEnumerable<int>)q2));
 
-                        Assert.Equal(l2oObjects, efObjects);
-                    });
+        //                Assert.Equal(l2oObjects, efObjects);
+        //            });
         }
 
         [ConditionalFact]
@@ -485,13 +499,14 @@ namespace Microsoft.EntityFrameworkCore.Query
             AssertQuery<Customer>(
                 cs => from c in cs
                       where c.CustomerID.StartsWith("A")
-                      select new { A = new DateTime() });
+                      select new { A = new DateTime() },
+                e => e.A);
         }
 
         [ConditionalFact]
         public virtual void Select_non_matching_value_types_int_to_long_introduces_explicit_cast()
         {
-            AssertQuery<Order>(
+            AssertQueryScalar<Order, long>(
                 os => os
                     .Where(o => o.CustomerID == "ALFKI")
                     .OrderBy(o => o.OrderID)
@@ -502,7 +517,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Select_non_matching_value_types_nullable_int_to_long_introduces_explicit_cast()
         {
-            AssertQuery<Order>(
+            AssertQueryScalar<Order, long>(
                 os => os
                     .Where(o => o.CustomerID == "ALFKI")
                     .OrderBy(o => o.OrderID)
@@ -513,29 +528,29 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Select_non_matching_value_types_nullable_int_to_int_doesnt_introduces_explicit_cast()
         {
-            AssertQuery<Order>(
+            AssertQueryScalar<Order, int>(
                 os => os
                     .Where(o => o.CustomerID == "ALFKI")
                     .OrderBy(o => o.OrderID)
                     .Select(o => (int)o.EmployeeID),
-            assertOrder: true);
+                assertOrder: true);
         }
 
         [ConditionalFact]
         public virtual void Select_non_matching_value_types_int_to_nullable_int_doesnt_introduce_explicit_cast()
         {
-            AssertQuery<Order>(
+            AssertQueryNullableScalar<Order, int>(
                 os => os
                     .Where(o => o.CustomerID == "ALFKI")
                     .OrderBy(o => o.OrderID)
-                    .Select(o => (int?)o.OrderID), 
+                    .Select(o => (int?)o.OrderID),
                 assertOrder: true);
         }
 
         [ConditionalFact]
         public virtual void Select_non_matching_value_types_from_binary_expression_introduces_explicit_cast()
         {
-            AssertQuery<Order>(
+            AssertQueryScalar<Order, long>(
                 os => os
                     .Where(o => o.CustomerID == "ALFKI")
                     .OrderBy(o => o.OrderID)
@@ -546,7 +561,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Select_non_matching_value_types_from_binary_expression_nested_introduces_top_level_explicit_cast()
         {
-            AssertQuery<Order>(
+            AssertQueryScalar<Order, short>(
                 os => os
                     .Where(o => o.CustomerID == "ALFKI")
                     .OrderBy(o => o.OrderID)
@@ -557,7 +572,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Select_non_matching_value_types_from_unary_expression_introduces_explicit_cast1()
         {
-            AssertQuery<Order>(
+            AssertQueryScalar<Order, long>(
                 os => os
                     .Where(o => o.CustomerID == "ALFKI")
                     .OrderBy(o => o.OrderID)
@@ -568,7 +583,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Select_non_matching_value_types_from_unary_expression_introduces_explicit_cast2()
         {
-            AssertQuery<Order>(
+            AssertQueryScalar<Order, long>(
                 os => os
                     .Where(o => o.CustomerID == "ALFKI")
                     .OrderBy(o => o.OrderID)
@@ -580,7 +595,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Select_non_matching_value_types_from_length_introduces_explicit_cast()
         {
-            AssertQuery<Order>(
+            AssertQueryScalar<Order, long>(
                 os => os
                     .Where(o => o.CustomerID == "ALFKI")
                     .OrderBy(o => o.OrderID)
@@ -591,7 +606,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Select_non_matching_value_types_from_method_call_introduces_explicit_cast()
         {
-            AssertQuery<Order>(
+            AssertQueryScalar<Order, long>(
                 os => os
                     .Where(o => o.CustomerID == "ALFKI")
                     .OrderBy(o => o.OrderID)

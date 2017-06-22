@@ -493,14 +493,16 @@ namespace Microsoft.EntityFrameworkCore.Query
         public virtual void Select_math_round_int()
         {
             AssertQuery<Order>(
-                os => os.Where(o => o.OrderID < 10250).Select(o => new { A = Math.Round((double)o.OrderID) }));
+                os => os.Where(o => o.OrderID < 10250).Select(o => new { A = Math.Round((double)o.OrderID) }),
+                e => e.A);
         }
 
         [ConditionalFact]
         public virtual void Select_math_truncate_int()
         {
             AssertQuery<Order>(
-                os => os.Where(o => o.OrderID < 10250).Select(o => new { A = Math.Truncate((double)o.OrderID) }));
+                os => os.Where(o => o.OrderID < 10250).Select(o => new { A = Math.Truncate((double)o.OrderID) }),
+                e => e.A);
         }
 
         [ConditionalFact]

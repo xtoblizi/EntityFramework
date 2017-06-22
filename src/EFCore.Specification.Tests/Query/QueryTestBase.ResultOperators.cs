@@ -59,20 +59,20 @@ namespace Microsoft.EntityFrameworkCore.Query
                 {
                     Order = o.OrderID,
                     Customer = o.CustomerID
-                })
-                    .GroupBy(p => p.Customer),
-                asserter:
-                (l2oResults, efResults) =>
-                    {
-                        var efGroupings = efResults.Cast<IGrouping<string, ProjectedType>>().ToList();
+                }).GroupBy(p => p.Customer),
+                elementAsserter: (e, a) => throw new InvalidOperationException("dupa"));
+                //asserter:
+                //(l2oResults, efResults) =>
+                //    {
+                //        var efGroupings = efResults.Cast<IGrouping<string, ProjectedType>>().ToList();
 
-                        foreach (IGrouping<string, ProjectedType> l2oGrouping in l2oResults)
-                        {
-                            var efGrouping = efGroupings.Single(efg => efg.Key == l2oGrouping.Key);
+                //        foreach (IGrouping<string, ProjectedType> l2oGrouping in l2oResults)
+                //        {
+                //            var efGrouping = efGroupings.Single(efg => efg.Key == l2oGrouping.Key);
 
-                            Assert.Equal(l2oGrouping.OrderBy(p => p.Order), efGrouping.OrderBy(p => p.Order));
-                        }
-                    });
+                //            Assert.Equal(l2oGrouping.OrderBy(p => p.Order), efGrouping.OrderBy(p => p.Order));
+                //        }
+                //    });
         }
 
         [ConditionalFact]
@@ -116,67 +116,65 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Sum_with_no_arg()
         {
-            AssertQuery<Order>(os => os.Select(o => o.OrderID).Sum());
+            AssertSingleResult<Order, int>(os => os.Select(o => o.OrderID).Sum());
         }
 
         [ConditionalFact]
         public virtual void Sum_with_binary_expression()
         {
-            AssertQuery<Order>(os => os.Select(o => o.OrderID * 2).Sum());
+            AssertSingleResult<Order, int>(os => os.Select(o => o.OrderID * 2).Sum());
         }
 
         [ConditionalFact]
         public virtual void Sum_with_no_arg_empty()
         {
-            AssertQuery<Order>(os => os.Where(o => o.OrderID == 42).Select(o => o.OrderID).Sum());
+            AssertSingleResult<Order, int>(os => os.Where(o => o.OrderID == 42).Select(o => o.OrderID).Sum());
         }
 
         [ConditionalFact]
         public virtual void Sum_with_arg()
         {
-            AssertQuery<Order>(os => os.Sum(o => o.OrderID));
+            AssertSingleResult<Order, int>(os => os.Sum(o => o.OrderID));
         }
 
         [ConditionalFact]
         public virtual void Sum_with_arg_expression()
         {
-            AssertQuery<Order>(os => os.Sum(o => o.OrderID + o.OrderID));
+            AssertSingleResult<Order, int>(os => os.Sum(o => o.OrderID + o.OrderID));
         }
 
         [ConditionalFact]
         public virtual void Sum_with_division_on_decimal()
         {
-            AssertQuery<OrderDetail>(
+            AssertSingleResult<OrderDetail, decimal>(
                 ods => ods.Sum(od => od.Quantity / 2.09m),
-                asserter: (l2o, ef)
-                    => Assert.InRange((decimal)l2o - (decimal)ef, -0.1m, 0.1m));
+                asserter: (e, a) => Assert.InRange(e - a, -0.1m, 0.1m));
         }
 
         [ConditionalFact]
         public virtual void Sum_with_division_on_decimal_no_significant_digits()
         {
-            AssertQuery<OrderDetail>(
+            AssertSingleResult<OrderDetail, decimal>(
                 ods => ods.Sum(od => od.Quantity / 2m),
-                asserter: (l2o, ef)
-                    => Assert.InRange((decimal)l2o - (decimal)ef, -0.1m, 0.1m));
+                asserter: (e, a) => Assert.InRange(e - a, -0.1m, 0.1m));
         }
 
         [ConditionalFact]
         public virtual void Sum_with_coalesce()
         {
-            AssertQuery<Product>(ps => ps.Where(p => p.ProductID < 40).Sum(p => p.UnitPrice ?? 0));
+            AssertSingleResult<Product, decimal>(ps => ps.Where(p => p.ProductID < 40).Sum(p => p.UnitPrice ?? 0));
         }
 
         [ConditionalFact]
         public virtual void Sum_over_subquery_is_client_eval()
         {
-            AssertQuery<Customer>(cs => cs.Sum(c => c.Orders.Sum(o => o.OrderID)));
+            AssertSingleResult<Customer, int>(cs => cs.Sum(c => c.Orders.Sum(o => o.OrderID)));
         }
 
         [ConditionalFact]
         public virtual void Sum_on_float_column()
         {
-            AssertQuery<OrderDetail>(ods => ods.Where(od => od.ProductID == 1).Sum(od => od.Discount));
+            AssertSingleResult<OrderDetail, float>(ods => ods.Where(od => od.ProductID == 1).Sum(od => od.Discount));
         }
 
         [ConditionalFact]
@@ -188,208 +186,207 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Average_with_no_arg()
         {
-            AssertQuery<Order>(os => os.Select(o => o.OrderID).Average());
+            AssertSingleResult<Order, double>(os => os.Select(o => o.OrderID).Average());
         }
 
         [ConditionalFact]
         public virtual void Average_with_binary_expression()
         {
-            AssertQuery<Order>(os => os.Select(o => o.OrderID * 2).Average());
+            AssertSingleResult<Order, double>(os => os.Select(o => o.OrderID * 2).Average());
         }
 
         [ConditionalFact]
         public virtual void Average_with_arg()
         {
-            AssertQuery<Order>(os => os.Average(o => o.OrderID));
+            AssertSingleResult<Order, double>(os => os.Average(o => o.OrderID));
         }
 
         [ConditionalFact]
         public virtual void Average_with_arg_expression()
         {
-            AssertQuery<Order>(os => os.Average(o => o.OrderID + o.OrderID));
+            AssertSingleResult<Order, double>(os => os.Average(o => o.OrderID + o.OrderID));
         }
 
         [ConditionalFact]
         public virtual void Average_with_division_on_decimal()
         {
-            AssertQuery<OrderDetail>(
+            AssertSingleResult<OrderDetail, decimal>(
                 ods => ods.Average(od => od.Quantity / 2.09m),
-                asserter: (l2o, ef)
-                    => Assert.InRange((decimal)l2o - (decimal)ef, -0.1m, 0.1m));
+                asserter: (e, a) => Assert.InRange((decimal)e - (decimal)a, -0.1m, 0.1m));
         }
 
         [ConditionalFact]
         public virtual void Average_with_division_on_decimal_no_significant_digits()
         {
-            AssertQuery<OrderDetail>(
+            AssertSingleResult<OrderDetail, decimal>(
                 ods => ods.Average(od => od.Quantity / 2m),
-                asserter: (l2o, ef)
-                    => Assert.InRange((decimal)l2o - (decimal)ef, -0.1m, 0.1m));
+                asserter: (e, a) => Assert.InRange((decimal)e - (decimal)a, -0.1m, 0.1m));
         }
 
         [ConditionalFact]
         public virtual void Average_with_coalesce()
         {
-            AssertQuery<Product>(ps => ps.Where(p => p.ProductID < 40).Average(p => p.UnitPrice ?? 0),
-                asserter: (l2o, ef)
-                    => Assert.InRange((decimal)l2o - (decimal)ef, -0.1m, 0.1m));
+            AssertSingleResult<Product, decimal>(
+                ps => ps.Where(p => p.ProductID < 40).Average(p => p.UnitPrice ?? 0),
+                asserter: (e, a) => Assert.InRange((decimal)e - (decimal)a, -0.1m, 0.1m));
         }
 
         [ConditionalFact]
         public virtual void Average_over_subquery_is_client_eval()
         {
-            AssertQuery<Customer>(cs => cs.Average(c => c.Orders.Sum(o => o.OrderID)));
+            AssertSingleResult<Customer, double>(cs => cs.Average(c => c.Orders.Sum(o => o.OrderID)));
         }
 
         [ConditionalFact]
         public virtual void Average_on_float_column()
         {
-            AssertQuery<OrderDetail>(ods => ods.Where(od => od.ProductID == 1).Average(od => od.Discount));
+            AssertSingleResult<OrderDetail, double>(ods => ods.Where(od => od.ProductID == 1).Average(od => od.Discount));
         }
 
         [ConditionalFact]
         public virtual void Average_on_float_column_in_subquery()
         {
-            AssertQuery<Order>(os => os.Where(o => o.OrderID < 10300).Select(o => new { o.OrderID, Sum = o.OrderDetails.Average(od => od.Discount) }));
+            AssertQuery<Order>(
+                os => os.Where(o => o.OrderID < 10300).Select(o => new { o.OrderID, Sum = o.OrderDetails.Average(od => od.Discount) }),
+                e => e.OrderID);
         }
 
         [ConditionalFact]
         public virtual void Min_with_no_arg()
         {
-            AssertQuery<Order>(os => os.Select(o => o.OrderID).Min());
+            AssertSingleResult<Order, int>(os => os.Select(o => o.OrderID).Min());
         }
 
         [ConditionalFact]
         public virtual void Min_with_arg()
         {
-            AssertQuery<Order>(os => os.Min(o => o.OrderID));
+            AssertSingleResult<Order, int>(os => os.Min(o => o.OrderID));
         }
 
         [ConditionalFact]
         public virtual void Min_with_coalesce()
         {
-            AssertQuery<Product>(ps => ps.Where(p => p.ProductID < 40).Min(p => p.UnitPrice ?? 0));
+            AssertSingleResult<Product, decimal>(ps => ps.Where(p => p.ProductID < 40).Min(p => p.UnitPrice ?? 0));
         }
 
         [ConditionalFact]
         public virtual void Min_over_subquery_is_client_eval()
         {
-            AssertQuery<Customer>(cs => cs.Min(c => c.Orders.Sum(o => o.OrderID)));
+            AssertSingleResult<Customer, int>(cs => cs.Min(c => c.Orders.Sum(o => o.OrderID)));
         }
 
         [ConditionalFact]
         public virtual void Max_with_no_arg()
         {
-            AssertQuery<Order>(os => os.Select(o => o.OrderID).Max());
+            AssertSingleResult<Order, int>(os => os.Select(o => o.OrderID).Max());
         }
 
         [ConditionalFact]
         public virtual void Max_with_arg()
         {
-            AssertQuery<Order>(os => os.Max(o => o.OrderID));
+            AssertSingleResult<Order, int>(os => os.Max(o => o.OrderID));
         }
 
         [ConditionalFact]
         public virtual void Max_with_coalesce()
         {
-            AssertQuery<Product>(ps => ps.Where(p => p.ProductID < 40).Max(p => p.UnitPrice ?? 0));
+            AssertSingleResult<Product, decimal>(ps => ps.Where(p => p.ProductID < 40).Max(p => p.UnitPrice ?? 0));
         }
 
         [ConditionalFact]
         public virtual void Max_over_subquery_is_client_eval()
         {
-            AssertQuery<Customer>(cs => cs.Max(c => c.Orders.Sum(o => o.OrderID)));
+            AssertSingleResult<Customer, int>(cs => cs.Max(c => c.Orders.Sum(o => o.OrderID)));
         }
 
         [ConditionalFact]
         public virtual void Count_with_no_predicate()
         {
-            AssertQuery<Order>(os => os.Count());
+            AssertSingleResult<Order, int>(os => os.Count());
         }
 
         [ConditionalFact]
         public virtual void Count_with_predicate()
         {
-            AssertQuery<Order>(os =>
-                os.Count(o => o.CustomerID == "ALFKI"));
+            AssertSingleResult<Order, int>(os =>os.Count(o => o.CustomerID == "ALFKI"));
         }
 
         [ConditionalFact]
         public virtual void Count_with_order_by()
         {
-            AssertQuery<Order>(os => os.OrderBy(o => o.CustomerID).Count());
+            AssertSingleResult<Order, int>(os => os.OrderBy(o => o.CustomerID).Count());
         }
 
         [ConditionalFact]
         public virtual void Where_OrderBy_Count()
         {
-            AssertQuery<Order>(os => os.Where(o => o.CustomerID == "ALFKI").OrderBy(o => o.OrderID).Count());
+            AssertSingleResult<Order, int>(os => os.Where(o => o.CustomerID == "ALFKI").OrderBy(o => o.OrderID).Count());
         }
 
         [ConditionalFact]
         public virtual void OrderBy_Where_Count()
         {
-            AssertQuery<Order>(os => os.OrderBy(o => o.OrderID).Where(o => o.CustomerID == "ALFKI").Count());
+            AssertSingleResult<Order, int>(os => os.OrderBy(o => o.OrderID).Where(o => o.CustomerID == "ALFKI").Count());
         }
 
         [ConditionalFact]
         public virtual void OrderBy_Count_with_predicate()
         {
-            AssertQuery<Order>(os => os.OrderBy(o => o.OrderID).Count(o => o.CustomerID == "ALFKI"));
+            AssertSingleResult<Order, int>(os => os.OrderBy(o => o.OrderID).Count(o => o.CustomerID == "ALFKI"));
         }
 
         [ConditionalFact]
         public virtual void OrderBy_Where_Count_with_predicate()
         {
-            AssertQuery<Order>(os => os.OrderBy(o => o.OrderID).Where(o => o.OrderID > 10).Count(o => o.CustomerID != "ALFKI"));
+            AssertSingleResult<Order, int>(os => os.OrderBy(o => o.OrderID).Where(o => o.OrderID > 10).Count(o => o.CustomerID != "ALFKI"));
         }
 
         [ConditionalFact]
         public virtual void Where_OrderBy_Count_client_eval()
         {
-            AssertQuery<Order>(os => os.Where(o => ClientEvalPredicate(o)).OrderBy(o => ClientEvalSelectorStateless()).Count());
+            AssertSingleResult<Order, int>(os => os.Where(o => ClientEvalPredicate(o)).OrderBy(o => ClientEvalSelectorStateless()).Count());
         }
 
         [ConditionalFact]
         public virtual void Where_OrderBy_Count_client_eval_mixed()
         {
-            AssertQuery<Order>(os => os.Where(o => o.OrderID > 10).OrderBy(o => ClientEvalPredicate(o)).Count());
+            AssertSingleResult<Order, int>(os => os.Where(o => o.OrderID > 10).OrderBy(o => ClientEvalPredicate(o)).Count());
         }
 
         [ConditionalFact]
         public virtual void OrderBy_Where_Count_client_eval()
         {
-            AssertQuery<Order>(os => os.OrderBy(o => ClientEvalSelectorStateless()).Where(o => ClientEvalPredicate(o)).Count());
+            AssertSingleResult<Order, int>(os => os.OrderBy(o => ClientEvalSelectorStateless()).Where(o => ClientEvalPredicate(o)).Count());
         }
 
         [ConditionalFact]
         public virtual void OrderBy_Where_Count_client_eval_mixed()
         {
-            AssertQuery<Order>(os => os.OrderBy(o => o.OrderID).Where(o => ClientEvalPredicate(o)).Count());
+            AssertSingleResult<Order, int>(os => os.OrderBy(o => o.OrderID).Where(o => ClientEvalPredicate(o)).Count());
         }
 
         [ConditionalFact]
         public virtual void OrderBy_Count_with_predicate_client_eval()
         {
-            AssertQuery<Order>(os => os.OrderBy(o => ClientEvalSelectorStateless()).Count(o => ClientEvalPredicate(o)));
+            AssertSingleResult<Order, int>(os => os.OrderBy(o => ClientEvalSelectorStateless()).Count(o => ClientEvalPredicate(o)));
         }
 
         [ConditionalFact]
         public virtual void OrderBy_Count_with_predicate_client_eval_mixed()
         {
-            AssertQuery<Order>(os => os.OrderBy(o => o.OrderID).Count(o => ClientEvalPredicate(o)));
+            AssertSingleResult<Order, int>(os => os.OrderBy(o => o.OrderID).Count(o => ClientEvalPredicate(o)));
         }
 
         [ConditionalFact]
         public virtual void OrderBy_Where_Count_with_predicate_client_eval()
         {
-            AssertQuery<Order>(os => os.OrderBy(o => ClientEvalSelectorStateless()).Where(o => ClientEvalPredicate(o)).Count(o => ClientEvalPredicate(o)));
+            AssertSingleResult<Order, int>(os => os.OrderBy(o => ClientEvalSelectorStateless()).Where(o => ClientEvalPredicate(o)).Count(o => ClientEvalPredicate(o)));
         }
 
         [ConditionalFact]
         public virtual void OrderBy_Where_Count_with_predicate_client_eval_mixed()
         {
-            AssertQuery<Order>(os => os.OrderBy(o => o.OrderID).Where(o => ClientEvalPredicate(o)).Count(o => o.CustomerID != "ALFKI"));
+            AssertSingleResult<Order, int>(os => os.OrderBy(o => o.OrderID).Where(o => ClientEvalPredicate(o)).Count(o => o.CustomerID != "ALFKI"));
         }
 
         [ConditionalFact]
@@ -476,14 +473,14 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Distinct_Count()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, int>(
                 cs => cs.Distinct().Count());
         }
 
         [ConditionalFact]
         public virtual void Select_Select_Distinct_Count()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, int>(
                 cs => cs.Select(c => c.City).Select(c => c).Distinct().Count());
         }
 
@@ -491,20 +488,20 @@ namespace Microsoft.EntityFrameworkCore.Query
         public virtual void Single_Throws()
         {
             Assert.Throws<InvalidOperationException>(() =>
-                AssertQuery<Customer>(cs => cs.Single()));
+                AssertSingleResult<Customer, Customer>(cs => cs.Single()));
         }
 
         [ConditionalFact]
         public virtual void Single_Predicate()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, Customer>(
                 cs => cs.Single(c => c.CustomerID == "ALFKI"));
         }
 
         [ConditionalFact]
         public virtual void Where_Single()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, Customer>(
                 // ReSharper disable once ReplaceWithSingleCallToSingle
                 cs => cs.Where(c => c.CustomerID == "ALFKI").Single());
         }
@@ -513,21 +510,21 @@ namespace Microsoft.EntityFrameworkCore.Query
         public virtual void SingleOrDefault_Throws()
         {
             Assert.Throws<InvalidOperationException>(() =>
-                AssertQuery<Customer>(
+                AssertSingleResult<Customer, Customer>(
                     cs => cs.SingleOrDefault()));
         }
 
         [ConditionalFact]
         public virtual void SingleOrDefault_Predicate()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, Customer>(
                 cs => cs.SingleOrDefault(c => c.CustomerID == "ALFKI"));
         }
 
         [ConditionalFact]
         public virtual void Where_SingleOrDefault()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, Customer>(
                 // ReSharper disable once ReplaceWithSingleCallToSingleOrDefault
                 cs => cs.Where(c => c.CustomerID == "ALFKI").SingleOrDefault());
         }
@@ -535,21 +532,21 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void First()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, Customer>(
                 cs => cs.OrderBy(c => c.ContactName).First());
         }
 
         [ConditionalFact]
         public virtual void First_Predicate()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, Customer>(
                 cs => cs.OrderBy(c => c.ContactName).First(c => c.City == "London"));
         }
 
         [ConditionalFact]
         public virtual void Where_First()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, Customer>(
                 // ReSharper disable once ReplaceWithSingleCallToFirst
                 cs => cs.OrderBy(c => c.ContactName).Where(c => c.City == "London").First());
         }
@@ -557,21 +554,21 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void FirstOrDefault()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, Customer>(
                 cs => cs.OrderBy(c => c.ContactName).FirstOrDefault());
         }
 
         [ConditionalFact]
         public virtual void FirstOrDefault_Predicate()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, Customer>(
                 cs => cs.OrderBy(c => c.ContactName).FirstOrDefault(c => c.City == "London"));
         }
 
         [ConditionalFact]
         public virtual void Where_FirstOrDefault()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, Customer>(
                 // ReSharper disable once ReplaceWithSingleCallToFirstOrDefault
                 cs => cs.OrderBy(c => c.ContactName).Where(c => c.City == "London").FirstOrDefault());
         }
@@ -597,14 +594,14 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Last()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, Customer>(
                 cs => cs.OrderBy(c => c.ContactName).Last());
         }
 
         [ConditionalFact]
         public virtual void Last_when_no_order_by()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, Customer>(
                 // ReSharper disable once ReplaceWithSingleCallToLast
                 cs => cs.Where(c => c.CustomerID == "ALFKI").Last());
         }
@@ -612,14 +609,14 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Last_Predicate()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, Customer>(
                 cs => cs.OrderBy(c => c.ContactName).Last(c => c.City == "London"));
         }
 
         [ConditionalFact]
         public virtual void Where_Last()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, Customer>(
                 // ReSharper disable once ReplaceWithSingleCallToLast
                 cs => cs.OrderBy(c => c.ContactName).Where(c => c.City == "London").Last());
         }
@@ -627,21 +624,21 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void LastOrDefault()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, Customer>(
                 cs => cs.OrderBy(c => c.ContactName).LastOrDefault());
         }
 
         [ConditionalFact]
         public virtual void LastOrDefault_Predicate()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, Customer>(
                 cs => cs.OrderBy(c => c.ContactName).LastOrDefault(c => c.City == "London"));
         }
 
         [ConditionalFact]
         public virtual void Where_LastOrDefault()
         {
-            AssertQuery<Customer>(
+            AssertSingleResult<Customer, Customer>(
                 // ReSharper disable once ReplaceWithSingleCallToLastOrDefault
                 cs => cs.OrderBy(c => c.ContactName).Where(c => c.City == "London").LastOrDefault());
         }
@@ -822,8 +819,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Contains_top_level()
         {
-            AssertQuery<Customer>(cs =>
-                cs.Select(c => c.CustomerID).Contains("ALFKI"));
+            AssertSingleResult<Customer, bool>(cs => cs.Select(c => c.CustomerID).Contains("ALFKI"));
         }
 
         [ConditionalFact]
@@ -1068,7 +1064,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Average_with_non_matching_types_in_projection_doesnt_produce_second_explicit_cast()
         {
-            AssertQuery<Order>(
+            AssertSingleResult<Order, double>(
                 os => os
                     .Where(o => o.CustomerID.StartsWith("A"))
                     .OrderBy(o => o.OrderID)

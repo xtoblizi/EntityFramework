@@ -6,6 +6,7 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore.TestModels.Northwind;
 using Microsoft.EntityFrameworkCore.TestUtilities.Xunit;
 using Xunit;
+using System.Collections.Generic;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
@@ -15,39 +16,47 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Join_customers_orders_projection()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                from c in cs
-                join o in os on c.CustomerID equals o.CustomerID
-                select new { c.ContactName, o.OrderID });
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
+                    from c in cs
+                    join o in os on c.CustomerID equals o.CustomerID
+                    select new { c.ContactName, o.OrderID },
+                e => e.OrderID);
         }
 
         [ConditionalFact]
         public virtual void Join_customers_orders_entities()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                from c in cs
-                join o in os on c.CustomerID equals o.CustomerID
-                select new { c, o });
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
+                    from c in cs
+                    join o in os on c.CustomerID equals o.CustomerID
+                    select new { c, o },
+                e => e.c.CustomerID + " " + e.o.OrderID);
         }
 
         [ConditionalFact]
         public virtual void Join_select_many()
         {
-            AssertQuery<Customer, Order, Employee>((cs, os, es) =>
-                from c in cs
-                join o in os on c.CustomerID equals o.CustomerID
-                from e in es
-                select new { c, o, e });
+            AssertQuery<Customer, Order, Employee>(
+                (cs, os, es) =>
+                    from c in cs
+                    join o in os on c.CustomerID equals o.CustomerID
+                    from e in es
+                    select new { c, o, e },
+                e => e.c.CustomerID + " " + e.o.OrderID + " " + e.e.EmployeeID);
         }
 
         [ConditionalFact]
         public virtual void Client_Join_select_many()
         {
-            AssertQuery<Employee>(es =>
+            AssertQuery<Employee>(
+                es =>
                     from e1 in es.Take(2)
                     join e2 in es.Take(2) on e1.EmployeeID equals GetEmployeeID(e2)
                     from e3 in es.Skip(6).Take(2)
                     select new { e1, e2, e3 },
+                e => e.e1.EmployeeID + " " + e.e2.EmployeeID + " " + e.e3.EmployeeID,
                 entryCount: 4);
         }
 
@@ -59,88 +68,104 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Join_customers_orders_select()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                from c in cs
-                join o in os on c.CustomerID equals o.CustomerID
-                select new { c.ContactName, o.OrderID }
-                into p
-                select p);
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
+                    from c in cs
+                    join o in os on c.CustomerID equals o.CustomerID
+                    select new { c.ContactName, o.OrderID }
+                    into p
+                    select p,
+                e => e.OrderID);
         }
 
         [ConditionalFact]
         public virtual void Join_customers_orders_with_subquery()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                from c in cs
-                join o1 in
-                (from o2 in os orderby o2.OrderID select o2) on c.CustomerID equals o1.CustomerID
-                where o1.CustomerID == "ALFKI"
-                select new { c.ContactName, o1.OrderID });
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
+                    from c in cs
+                    join o1 in
+                    (from o2 in os orderby o2.OrderID select o2) on c.CustomerID equals o1.CustomerID
+                    where o1.CustomerID == "ALFKI"
+                    select new { c.ContactName, o1.OrderID },
+                e => e.OrderID);
         }
 
         [ConditionalFact]
         public virtual void Join_customers_orders_with_subquery_with_take()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                from c in cs
-                join o1 in
-                (from o2 in os orderby o2.OrderID select o2).Take(5) on c.CustomerID equals o1.CustomerID
-                where o1.CustomerID == "ALFKI"
-                select new { c.ContactName, o1.OrderID });
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
+                    from c in cs
+                    join o1 in
+                    (from o2 in os orderby o2.OrderID select o2).Take(5) on c.CustomerID equals o1.CustomerID
+                    where o1.CustomerID == "ALFKI"
+                    select new { c.ContactName, o1.OrderID },
+                e => e.OrderID);
         }
 
         [ConditionalFact]
         public virtual void Join_customers_orders_with_subquery_anonymous_property_method()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                from c in cs
-                join o1 in
-                (from o2 in os orderby o2.OrderID select new { o2 }) on c.CustomerID equals o1.o2.CustomerID
-                where EF.Property<string>(o1.o2, "CustomerID") == "ALFKI"
-                select new { o1, o1.o2, Shadow = EF.Property<DateTime?>(o1.o2, "OrderDate") });
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
+                    from c in cs
+                    join o1 in
+                    (from o2 in os orderby o2.OrderID select new { o2 }) on c.CustomerID equals o1.o2.CustomerID
+                    where EF.Property<string>(o1.o2, "CustomerID") == "ALFKI"
+                    select new { o1, o1.o2, Shadow = EF.Property<DateTime?>(o1.o2, "OrderDate") },
+                e => e.o1.o2.OrderID);
         }
 
         [ConditionalFact]
         public virtual void Join_customers_orders_with_subquery_anonymous_property_method_with_take()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                from c in cs
-                join o1 in
-                (from o2 in os orderby o2.OrderID select new { o2 }).Take(5) on c.CustomerID equals o1.o2.CustomerID
-                where EF.Property<string>(o1.o2, "CustomerID") == "ALFKI"
-                select new { o1, o1.o2, Shadow = EF.Property<DateTime?>(o1.o2, "OrderDate") });
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
+                    from c in cs
+                    join o1 in
+                    (from o2 in os orderby o2.OrderID select new { o2 }).Take(5) on c.CustomerID equals o1.o2.CustomerID
+                    where EF.Property<string>(o1.o2, "CustomerID") == "ALFKI"
+                    select new { o1, o1.o2, Shadow = EF.Property<DateTime?>(o1.o2, "OrderDate") },
+                e => e.o1.o2.OrderID);
         }
 
         [ConditionalFact]
         public virtual void Join_customers_orders_with_subquery_predicate()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                from c in cs
-                join o1 in
-                (from o2 in os where o2.OrderID > 0 orderby o2.OrderID select o2) on c.CustomerID equals o1.CustomerID
-                where o1.CustomerID == "ALFKI"
-                select new { c.ContactName, o1.OrderID });
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
+                    from c in cs
+                    join o1 in
+                    (from o2 in os where o2.OrderID > 0 orderby o2.OrderID select o2) on c.CustomerID equals o1.CustomerID
+                    where o1.CustomerID == "ALFKI"
+                    select new { c.ContactName, o1.OrderID },
+                e => e.OrderID);
         }
 
         [ConditionalFact]
         public virtual void Join_customers_orders_with_subquery_predicate_with_take()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                from c in cs
-                join o1 in
-                (from o2 in os where o2.OrderID > 0 orderby o2.OrderID select o2).Take(5) on c.CustomerID equals o1.CustomerID
-                where o1.CustomerID == "ALFKI"
-                select new { c.ContactName, o1.OrderID });
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
+                    from c in cs
+                    join o1 in
+                    (from o2 in os where o2.OrderID > 0 orderby o2.OrderID select o2).Take(5) on c.CustomerID equals o1.CustomerID
+                    where o1.CustomerID == "ALFKI"
+                    select new { c.ContactName, o1.OrderID },
+                e => e.OrderID);
         }
 
         [ConditionalFact]
         public virtual void Join_composite_key()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                from c in cs
-                join o in os on new { a = c.CustomerID, b = c.CustomerID }
-                equals new { a = o.CustomerID, b = o.CustomerID }
-                select new { c, o });
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
+                    from c in cs
+                    join o in os on new { a = c.CustomerID, b = c.CustomerID }
+                    equals new { a = o.CustomerID, b = o.CustomerID }
+                    select new { c, o },
+                e => e.o.OrderID);
         }
 
         [ConditionalFact]
@@ -155,10 +180,12 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void Join_client_new_expression()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                from c in cs
-                join o in os on new Foo { Bar = c.CustomerID } equals new Foo { Bar = o.CustomerID }
-                select new { c, o });
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
+                    from c in cs
+                    join o in os on new Foo { Bar = c.CustomerID } equals new Foo { Bar = o.CustomerID }
+                    select new { c, o },
+                e => e.c.CustomerID);
         }
 
         [ConditionalFact]
@@ -166,14 +193,14 @@ namespace Microsoft.EntityFrameworkCore.Query
         {
             var ids = new[] { 1, 2 };
 
-            AssertQuery<Employee>(es =>
+            AssertQueryScalar<Employee, int>(es =>
                 from e in es
                 join id in ids on e.EmployeeID equals id
                 select e.EmployeeID);
 
             ids = new[] { 3 };
 
-            AssertQuery<Employee>(es =>
+            AssertQueryScalar<Employee, int>(es =>
                 from e in es
                 join id in ids on e.EmployeeID equals id
                 select e.EmployeeID);
@@ -184,14 +211,14 @@ namespace Microsoft.EntityFrameworkCore.Query
         {
             var ids = "12";
 
-            AssertQuery<Employee>(es =>
+            AssertQueryScalar<Employee, int>(es =>
                 from e in es
                 join id in ids on e.EmployeeID equals id
                 select e.EmployeeID);
 
             ids = "3";
 
-            AssertQuery<Employee>(es =>
+            AssertQueryScalar<Employee, int>(es =>
                 from e in es
                 join id in ids on e.EmployeeID equals id
                 select e.EmployeeID);
@@ -202,14 +229,14 @@ namespace Microsoft.EntityFrameworkCore.Query
         {
             var ids = new byte[] { 1, 2 };
 
-            AssertQuery<Employee>(es =>
+            AssertQueryScalar<Employee, int>(es =>
                 from e in es
                 join id in ids on e.EmployeeID equals id
                 select e.EmployeeID);
 
             ids = new byte[] { 3 };
 
-            AssertQuery<Employee>(es =>
+            AssertQueryScalar<Employee, int>(es =>
                 from e in es
                 join id in ids on e.EmployeeID equals id
                 select e.EmployeeID);
@@ -226,35 +253,45 @@ namespace Microsoft.EntityFrameworkCore.Query
         public virtual void Join_same_collection_force_alias_uniquefication()
         {
             AssertQuery<Order, Order>((os1, os2) =>
-                os1.Join(os2, o => o.CustomerID, i => i.CustomerID, (_, o) => new { _, o }));
+                os1.Join(os2, o => o.CustomerID, i => i.CustomerID, (_, o) => new { _, o }),
+                e => e.o.OrderID);
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_customers_orders()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
                     from c in cs
                     join o in os.OrderBy(o => o.OrderID) on c.CustomerID equals o.CustomerID into orders
                     select new { customer = c, orders = orders.ToList() },
-                asserter: (l2oItems, efItems) =>
-                    {
-                        foreach (var pair in
-                            from dynamic l2oItem in l2oItems
-                            join dynamic efItem in efItems on l2oItem.customer equals efItem.customer
-                            select new { l2oItem, efItem })
-                        {
-                            Assert.Equal(pair.l2oItem.orders, pair.efItem.orders);
-                        }
-                    });
+                e => e.customer.CustomerID,
+                elementAsserter: (e, a) =>
+                {
+                    Assert.Equal(e.customer.CustomerID, a.customer.CustomerID);
+                    Assert.Equal(e.orders.Count, a.orders.Count);
+                });
+                //asserter: (l2oItems, efItems) =>
+                //    {
+                //        foreach (var pair in
+                //            from dynamic l2oItem in l2oItems
+                //            join dynamic efItem in efItems on l2oItem.customer equals efItem.customer
+                //            select new { l2oItem, efItem })
+                //        {
+                //            Assert.Equal(pair.l2oItem.orders, pair.efItem.orders);
+                //        }
+                //    });
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_customers_orders_count()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                from c in cs
-                join o in os on c.CustomerID equals o.CustomerID into orders
-                select new { cust = c, ords = orders.Count() });
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
+                    from c in cs
+                    join o in os on c.CustomerID equals o.CustomerID into orders
+                    select new { cust = c, ords = orders.Count() },
+                e => e.cust.CustomerID);
         }
 
         [ConditionalFact]
@@ -270,49 +307,55 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void GroupJoin_customers_employees_shadow()
         {
-            AssertQuery<Customer, Employee>((cs, es) =>
-                (from c in cs
-                 join e in es on c.City equals e.City into employees
-                 select employees)
-                .SelectMany(emps => emps)
-                .Select(e =>
-                    new
-                    {
-                        Title = EF.Property<string>(e, "Title"),
-                        Id = e.EmployeeID
-                    }));
+            AssertQuery<Customer, Employee>(
+                (cs, es) =>
+                    (from c in cs
+                     join e in es on c.City equals e.City into employees
+                     select employees)
+                    .SelectMany(emps => emps)
+                    .Select(e =>
+                        new
+                        {
+                            Title = EF.Property<string>(e, "Title"),
+                            Id = e.EmployeeID
+                        }),
+                e => e.Id);
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_customers_employees_subquery_shadow()
         {
-            AssertQuery<Customer, Employee>((cs, es) =>
-                (from c in cs
-                 join e in es.OrderBy(e => e.City) on c.City equals e.City into employees
-                 select employees)
-                .SelectMany(emps => emps)
-                .Select(e =>
-                    new
-                    {
-                        Title = EF.Property<string>(e, "Title"),
-                        Id = e.EmployeeID
-                    }));
+            AssertQuery<Customer, Employee>(
+                (cs, es) =>
+                    (from c in cs
+                     join e in es.OrderBy(e => e.City) on c.City equals e.City into employees
+                     select employees)
+                    .SelectMany(emps => emps)
+                    .Select(e =>
+                        new
+                        {
+                            Title = EF.Property<string>(e, "Title"),
+                            Id = e.EmployeeID
+                        }),
+                e => e.Id);
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_customers_employees_subquery_shadow_take()
         {
-            AssertQuery<Customer, Employee>((cs, es) =>
-                (from c in cs
-                 join e in es.OrderBy(e => e.City).Take(5) on c.City equals e.City into employees
-                 select employees)
-                .SelectMany(emps => emps)
-                .Select(e =>
-                    new
-                    {
-                        Title = EF.Property<string>(e, "Title"),
-                        Id = e.EmployeeID
-                    }));
+            AssertQuery<Customer, Employee>(
+                (cs, es) =>
+                    (from c in cs
+                     join e in es.OrderBy(e => e.City).Take(5) on c.City equals e.City into employees
+                     select employees)
+                    .SelectMany(emps => emps)
+                    .Select(e =>
+                        new
+                        {
+                            Title = EF.Property<string>(e, "Title"),
+                            Id = e.EmployeeID
+                        }),
+                e => e.Id);
         }
 
         [ConditionalFact]
@@ -338,35 +381,40 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void GroupJoin_simple3()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                from c in cs
-                join o in os on c.CustomerID equals o.CustomerID into orders
-                from o in orders
-                select new { o.OrderID });
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
+                    from c in cs
+                    join o in os on c.CustomerID equals o.CustomerID into orders
+                    from o in orders
+                    select new { o.OrderID },
+                e => e.OrderID);
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_tracking_groups()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
                     from c in cs
                     join o in os on c.CustomerID equals o.CustomerID into orders
                     select orders,
-                entryCount: 830,
-                asserter:
-                (l2oResults, efResults) => { Assert.Equal(l2oResults.Count, efResults.Count); });
+                entryCount: 830);
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_tracking_groups2()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
                     from c in cs
                     join o in os on c.CustomerID equals o.CustomerID into orders
                     select new { c, orders },
+                e => e.c.CustomerID,
                 entryCount: 921,
-                asserter:
-                (l2oResults, efResults) => { Assert.Equal(l2oResults.Count, efResults.Count); });
+                elementAsserter: (e, a) => Assert.Equal(e.Count, a.Count));
+
+        //asserter:
+        //        (l2oResults, efResults) => { Assert.Equal(l2oResults.Count, efResults.Count); });
         }
 
         [ConditionalFact]
@@ -392,104 +440,131 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void GroupJoin_projection()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                from c in cs
-                join o in os on c.CustomerID equals o.CustomerID into orders
-                from o in orders
-                select new { c, o });
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
+                    from c in cs
+                    join o in os on c.CustomerID equals o.CustomerID into orders
+                    from o in orders
+                    select new { c, o },
+                e => e.c.CustomerID + " " + e.o.OrderID);
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_outer_projection()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                    cs.GroupJoin(os, c => c.CustomerID, o => o.CustomerID, (c, o) => new { c.City, o }),
-                asserter: (l2oResults, efResults) => { Assert.Equal(l2oResults.Count, efResults.Count); });
+            AssertQuery<Customer, Order>(
+                (cs, os) => cs.GroupJoin(os, c => c.CustomerID, o => o.CustomerID, (c, o) => new { c.City, o }),
+                e => e.o.OrderID,
+                elementAsserter: (e, a) =>
+                {
+                    Assert.Equal(e.City, a.City);
+                    Assert.Equal(e.o.OrderID, a.o.OrderID);
+                });
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_outer_projection2()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                    cs.GroupJoin(os, c => c.CustomerID, o => o.CustomerID, (c, g) => new { c.City, g = g.Select(o => o.CustomerID) }),
-                asserter: (l2oResults, efResults) => { Assert.Equal(l2oResults.Count, efResults.Count); });
+            AssertQuery<Customer, Order>(
+                (cs, os) => cs.GroupJoin(os, c => c.CustomerID, o => o.CustomerID, (c, g) => new { c.City, g = g.Select(o => o.CustomerID) }),
+                e => e.City + " " + ((IEnumerable<int>)e.g).Count(),
+                elementAsserter: (e, a) =>
+                {
+                    Assert.Equal(e.City, a.City);
+                    Assert.Equal(e.g.Count, a.g.Count);
+                });
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_outer_projection3()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                    cs.GroupJoin(os, c => c.CustomerID, o => o.CustomerID, (c, g) => new { g = g.Select(o => o.CustomerID) }),
-                asserter: (l2oResults, efResults) => { Assert.Equal(l2oResults.Count, efResults.Count); });
+            AssertQuery<Customer, Order>(
+                (cs, os) => cs.GroupJoin(os, c => c.CustomerID, o => o.CustomerID, (c, g) => new { g = g.Select(o => o.CustomerID) }),
+                e => ((IEnumerable<string>)e).Count(),
+                elementAsserter: (e, a) => Assert.Equal(e.g.Count(), a.g.Count()));
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_outer_projection4()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                    cs.GroupJoin(os, c => c.CustomerID, o => o.CustomerID, (c, g) => g.Select(o => o.CustomerID)),
-                asserter: (l2oResults, efResults) => { Assert.Equal(l2oResults.Count, efResults.Count); });
+            AssertQuery<Customer, Order>(
+                (cs, os) => cs.GroupJoin(os, c => c.CustomerID, o => o.CustomerID, (c, g) => g.Select(o => o.CustomerID)),
+                e => ((IEnumerable<string>)e).Count(),
+                elementAsserter: (e, a) => Assert.Equal(e.Count(), a.Count()));
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_outer_projection_reverse()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                    os.GroupJoin(cs, o => o.CustomerID, c => c.CustomerID, (o, c) => new { o.CustomerID, c }),
-                asserter: (l2oResults, efResults) => { Assert.Equal(l2oResults.Count, efResults.Count); });
+            AssertQuery<Customer, Order>(
+                (cs, os) => os.GroupJoin(cs, o => o.CustomerID, c => c.CustomerID, (o, c) => new { o.CustomerID, c }),
+                e => e.CustomerID,
+                elementAsserter: (e, a) => Assert.Equal(e.Count, a.Count));
+        //asserter: (l2oResults, efResults) => { Assert.Equal(l2oResults.Count, efResults.Count); });
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_outer_projection_reverse2()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                    os.GroupJoin(cs, o => o.CustomerID, c => c.CustomerID, (o, g) => new { o.CustomerID, g = g.Select(c => c.City) }),
-                asserter: (l2oResults, efResults) => { Assert.Equal(l2oResults.Count, efResults.Count); });
+            AssertQuery<Customer, Order>(
+                (cs, os) => os.GroupJoin(cs, o => o.CustomerID, c => c.CustomerID, (o, g) => new { o.CustomerID, g = g.Select(c => c.City) }),
+                elementSorter: e => e.CustomerID,
+                elementAsserter: (e, a) =>
+                {
+                    Assert.Equal(e.CustomerID, a.CustomerID);
+                    Assert.Equal(((IEnumerable<string>)e.g).Count(), ((IEnumerable<string>)a.g).Count());
+                });
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_subquery_projection_outer_mixed()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
                     from c in cs
                     from o0 in os.Take(1)
                     join o1 in os on c.CustomerID equals o1.CustomerID into orders
                     from o2 in orders
                     select new { A = c.CustomerID, B = o0.CustomerID, C = o2.CustomerID },
-                asserter:
-                (l2oResults, efResults) => { Assert.Equal(l2oResults.Count, efResults.Count); });
+                e => e.A + " " + e.B + " " + e.C);
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_DefaultIfEmpty()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                from c in cs
-                join o in os on c.CustomerID equals o.CustomerID into orders
-                from o in orders.DefaultIfEmpty()
-                select new { c, o });
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
+                    from c in cs
+                    join o in os on c.CustomerID equals o.CustomerID into orders
+                    from o in orders.DefaultIfEmpty()
+                    select new { c, o },
+                e => e.c.CustomerID + " " + e.o?.OrderID);
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_DefaultIfEmpty_multiple()
         {
-            AssertQuery<Customer, Order>((cs, os) =>
-                from c in cs
-                join o1 in os on c.CustomerID equals o1.CustomerID into orders1
-                from o1 in orders1.DefaultIfEmpty()
-                join o2 in os on c.CustomerID equals o2.CustomerID into orders2
-                from o2 in orders2.DefaultIfEmpty()
-                select new { c, o1, o2 });
+            AssertQuery<Customer, Order>(
+                (cs, os) =>
+                    from c in cs
+                    join o1 in os on c.CustomerID equals o1.CustomerID into orders1
+                    from o1 in orders1.DefaultIfEmpty()
+                    join o2 in os on c.CustomerID equals o2.CustomerID into orders2
+                    from o2 in orders2.DefaultIfEmpty()
+                    select new { c, o1, o2 },
+                e => e.c.CustomerID + " " + e.o1?.OrderID + " " + e.o2?.OrderID);
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_DefaultIfEmpty2()
         {
-            AssertQuery<Employee, Order>((es, os) =>
-                from e in es
-                join o in os on e.EmployeeID equals o.EmployeeID into orders
-                from o in orders.DefaultIfEmpty()
-                select new { e, o });
+            AssertQuery<Employee, Order>(
+                (es, os) =>
+                    from e in es
+                    join o in os on e.EmployeeID equals o.EmployeeID into orders
+                    from o in orders.DefaultIfEmpty()
+                    select new { e, o },
+                e => e.e.EmployeeID + " " + e.o?.OrderID);
         }
 
         [ConditionalFact]
@@ -561,83 +636,97 @@ namespace Microsoft.EntityFrameworkCore.Query
         [ConditionalFact]
         public virtual void GroupJoin_with_different_outer_elements_with_same_key()
         {
-            AssertQuery<Order, Customer>((os, cs) =>
-                os.GroupJoin(cs,
-                    o => o.CustomerID,
-                    c => c.CustomerID,
-                    (o, cg) => new
-                    {
-                        o.OrderID,
-                        Name = cg.Select(c => c.ContactName).FirstOrDefault()
-                    }));
+            AssertQuery<Order, Customer>(
+                (os, cs) =>
+                    os.GroupJoin(cs,
+                        o => o.CustomerID,
+                        c => c.CustomerID,
+                        (o, cg) => new
+                        {
+                            o.OrderID,
+                            Name = cg.Select(c => c.ContactName).FirstOrDefault()
+                        }),
+                e => e.OrderID + " " + e.Name);
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_with_different_outer_elements_with_same_key_with_predicate()
         {
-            AssertQuery<Order, Customer>((os, cs) =>
-                os.Where(o => o.OrderID > 11500).GroupJoin(cs,
-                    o => o.CustomerID,
-                    c => c.CustomerID,
-                    (o, cg) => new
-                    {
-                        o.OrderID,
-                        Name = cg.Select(c => c.ContactName).FirstOrDefault()
-                    }));
+            AssertQuery<Order, Customer>(
+                (os, cs) =>
+                    os.Where(o => o.OrderID > 11500).GroupJoin(cs,
+                        o => o.CustomerID,
+                        c => c.CustomerID,
+                        (o, cg) => new
+                        {
+                            o.OrderID,
+                            Name = cg.Select(c => c.ContactName).FirstOrDefault()
+                        }),
+                e => e.OrderID + " " + e.Name);
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_with_different_outer_elements_with_same_key_projected_from_another_entity()
         {
-            AssertQuery<OrderDetail, Customer>((ods, cs) =>
-                ods.Select(od => od.Order).GroupJoin(cs,
-                    o => o.CustomerID,
-                    c => c.CustomerID,
-                    (o, cg) => new
-                    {
-                        o.OrderID,
-                        Name = cg.Select(c => c.ContactName).FirstOrDefault()
-                    }));
+            AssertQuery<OrderDetail, Customer>(
+                (ods, cs) =>
+                    ods.Select(od => od.Order).GroupJoin(cs,
+                        o => o.CustomerID,
+                        c => c.CustomerID,
+                        (o, cg) => new
+                        {
+                            o.OrderID,
+                            Name = cg.Select(c => c.ContactName).FirstOrDefault()
+                        }),
+                e => e.OrderID + " " + e.Name);
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_SelectMany_subquery_with_filter()
         {
             AssertQuery<Customer, Order>(
-                (cs, os) => from c in cs
-                            join o in os on c.CustomerID equals o.CustomerID into lo
-                            from o in lo.Where(x => x.OrderID > 5)
-                            select new { c.ContactName, o.OrderID });
+                (cs, os) => 
+                    from c in cs
+                    join o in os on c.CustomerID equals o.CustomerID into lo
+                    from o in lo.Where(x => x.OrderID > 5)
+                    select new { c.ContactName, o.OrderID },
+                e => e.ContactName + " " + e.OrderID);
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_SelectMany_subquery_with_filter_orderby()
         {
             AssertQuery<Customer, Order>(
-                (cs, os) => from c in cs
-                            join o in os on c.CustomerID equals o.CustomerID into lo
-                            from o in lo.Where(x => x.OrderID > 5).OrderBy(x => x.OrderDate)
-                            select new { c.ContactName, o.OrderID });
+                (cs, os) => 
+                    from c in cs
+                    join o in os on c.CustomerID equals o.CustomerID into lo
+                    from o in lo.Where(x => x.OrderID > 5).OrderBy(x => x.OrderDate)
+                    select new { c.ContactName, o.OrderID },
+                e => e.ContactName + " " +  e.OrderID);
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_SelectMany_subquery_with_filter_and_DefaultIfEmpty()
         {
             AssertQuery<Customer, Order>(
-                (cs, os) => from c in cs
-                            join o in os on c.CustomerID equals o.CustomerID into lo
-                            from o in lo.Where(x => x.OrderID > 5).DefaultIfEmpty()
-                            select new { c.ContactName, o });
+                (cs, os) => 
+                    from c in cs
+                    join o in os on c.CustomerID equals o.CustomerID into lo
+                    from o in lo.Where(x => x.OrderID > 5).DefaultIfEmpty()
+                    select new { c.ContactName, o },
+                e => e.ContactName + " " + e.o?.OrderID);
         }
 
         [ConditionalFact]
         public virtual void GroupJoin_SelectMany_subquery_with_filter_orderby_and_DefaultIfEmpty()
         {
             AssertQuery<Customer, Order>(
-                (cs, os) => from c in cs
-                            join o in os on c.CustomerID equals o.CustomerID into lo
-                            from o in lo.Where(x => x.OrderID > 5).OrderBy(x => x.OrderDate).DefaultIfEmpty()
-                            select new { c.ContactName, o });
+                (cs, os) => 
+                    from c in cs
+                    join o in os on c.CustomerID equals o.CustomerID into lo
+                    from o in lo.Where(x => x.OrderID > 5).OrderBy(x => x.OrderDate).DefaultIfEmpty()
+                    select new { c.ContactName, o },
+                e => e.ContactName + " " + e.o?.OrderID);
         }
     }
 }
