@@ -559,5 +559,10 @@ FROM [Orders] AS [o]
 WHERE [o].[CustomerID] = N'ALFKI'
 ORDER BY [Order]");
         }
+
+        public override void Select_nested_collection_deep()
+        {
+            base.Select_nested_collection_deep();
+        }
     }
 }
