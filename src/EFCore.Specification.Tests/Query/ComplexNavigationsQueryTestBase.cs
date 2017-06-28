@@ -3582,6 +3582,26 @@ namespace Microsoft.EntityFrameworkCore.Query
                 new List<IExpectedInclude> { new ExpectedInclude<Level2>(e => e.OneToMany_Optional, "OneToMany_Optional") });
         }
 
+        public class MyEntity
+        {
+            public int Id { get; set; }
+            public string Name { get; set; }
+        }
+
+        [Fact]
+        public virtual void Netcoreapp_bug()
+        {
+            Action<dynamic> workingElementAsserter = e => Console.WriteLine("works");
+            Action<dynamic> failingElementAsserter = e => Console.WriteLine(e.Id);
+            var dto = new MyEntity { Id = 1, Name = "Foo" };
+            var anonymous = new { Id = 1, Name = "Foo" };
+
+            workingElementAsserter(dto); //works
+            failingElementAsserter(anonymous); //works
+
+            failingElementAsserter.Invoke(dto); //fails
+        }
+
         private static TResult Maybe<TResult>(object caller, Func<TResult> expression) where TResult : class
         {
             if (caller == null)
