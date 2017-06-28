@@ -1715,7 +1715,63 @@ namespace Microsoft.EntityFrameworkCore.Query
             }
         }
 
-        [ConditionalFact(Skip = "issue #8525")]
+        [ConditionalFact]
+        public virtual void Concat_with_count()
+        {
+            using (var context = CreateContext())
+            {
+                var result = context.Gears.Concat(context.Gears).Count();
+
+                Assert.Equal(10, result);
+            }
+        }
+
+        [ConditionalFact]
+        public virtual void Concat_scalars_with_count()
+        {
+            using (var context = CreateContext())
+            {
+                var result = context.Gears.Select(g => g.Nickname).Concat(context.Gears.Select(g2 => g2.FullName)).Count();
+            }
+        }
+
+        [ConditionalFact]
+        public virtual void Concat_anonymous_with_count()
+        {
+            using (var context = CreateContext())
+            {
+                var result = context.Gears.Select(g => new { Gear = g, Name = g.Nickname })
+                    .Concat(context.Gears.Select(g2 => new { Gear = g2, Name = g2.FullName })).Count();
+
+                Assert.Equal(10, result);
+            }
+        }
+
+        [ConditionalFact(Skip = "issue #9007")]
+        public virtual void Concat_with_scalar_projection()
+        {
+            using (var context = CreateContext())
+            {
+                var query = context.Gears.Concat(context.Gears).Select(g => g.Nickname);
+                var result = query.ToList();
+
+                Assert.Equal(10, result.Count);
+            }
+        }
+
+        [ConditionalFact]
+        public virtual void Select_navigation_with_concat_and_count()
+        {
+            using (var context = CreateContext())
+            {
+                var query = context.Gears.Where(g => !g.HasSoulPatch).Select(g => g.Weapons.Concat(g.Weapons).Count()).ToList();
+                var result = query.ToList();
+
+                Assert.Equal(3, result.Count);
+            }
+        }
+
+        [ConditionalFact]
         public virtual void Where_subquery_concat_order_by_firstordefault_boolean()
         {
             using (var context = CreateContext())
@@ -1727,7 +1783,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             }
         }
 
-        [ConditionalFact(Skip = "issues: #8524, #8525")]
+        [ConditionalFact]
         public virtual void Concat_with_collection_navigations()
         {
             using (var context = CreateContext())
@@ -1739,7 +1795,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             }
         }
 
-        [ConditionalFact(Skip = "issues: #8524, #8525")]
+        [ConditionalFact]
         public virtual void Union_with_collection_navigations()
         {
             using (var context = CreateContext())
